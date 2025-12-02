@@ -1,0 +1,49 @@
+import type { PageServerLoad } from "./$types";
+import { redirect } from "@sveltejs/kit";
+
+export const load: PageServerLoad = async ({ locals }) => {
+  // Benutzer holen
+  const {
+    data: { user },
+    error: userError
+  } = await locals.supabase.auth.getUser();
+
+  if (userError || !user) {
+    throw redirect(303, "/login");
+  }
+
+  // Reisen des Benutzers laden
+  const { data: tripsRaw, error: tripsError } = await locals.supabase
+    .from("reisen")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("start_date", { ascending: false });
+
+  const trips = tripsRaw ?? [];
+
+  if (tripsError) {
+    console.error("Fehler beim Laden der Reisen:", tripsError.message);
+  }
+
+  // Alle Bilder aus den Reisen einsammeln
+  const userImages: string[] = [];
+
+  for (const trip of trips) {
+    const anyTrip: any = trip;
+
+    if (anyTrip.cover_image) {
+      userImages.push(anyTrip.cover_image);
+    }
+
+    const imgs = Array.isArray(anyTrip.images) ? anyTrip.images : [];
+    for (const img of imgs) {
+      if (img) userImages.push(img);
+    }
+  }
+
+  return {
+    user,
+    trips,
+    userImages
+  };
+};
