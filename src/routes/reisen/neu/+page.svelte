@@ -3,6 +3,7 @@
   import { goto } from "$app/navigation";
   import { onMount, onDestroy } from "svelte";
   import { fade } from "svelte/transition";
+  import LocationPicker from "$lib/components/LocationPicker.svelte";
 
   // ---------- Formular-Zustand ----------
   let location = "";
@@ -13,6 +14,8 @@
   let startDate = "";
   let endDate = "";
   let imagesFiles: FileList | null = null;
+  let lat: number | null = null;
+  let lng: number | null = null;
 
   let loading = false;
   let errorMessage = "";
@@ -74,9 +77,13 @@
       const rating =
         ratingString.trim() === "" ? null : Number(ratingString);
 
-      // 1) Reise speichern
+      if (!lat || !lng) {
+        throw new Error("Bitte setze einen Standort auf der Karte.");
+      }
+
+      // 1) Reise speichern (Tabelle: reisen)
       const { data: tripData, error: tripError } = await supabase
-        .from("trips")
+        .from("reisen")
         .insert({
           user_id: user.id,
           title,
@@ -86,7 +93,9 @@
           rating,
           description: description || null,
           start_date: startDate || null,
-          end_date: endDate || null
+          end_date: endDate || null,
+          lat,
+          lng
         })
         .select()
         .single();
@@ -245,6 +254,17 @@
                 bind:value={description}
                 placeholder="Besondere Momente, Highlights, Erinnerungen..."
               ></textarea>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="field full">
+              <LocationPicker
+                bind:lat
+                bind:lng
+                color="#e11d48"
+                label="Standort setzen (Reise)"
+              />
             </div>
           </div>
 

@@ -3,10 +3,13 @@
   import { goto } from "$app/navigation";
   import { onMount, onDestroy } from "svelte";
   import { fade } from "svelte/transition";
+  import LocationPicker from "$lib/components/LocationPicker.svelte";
 
   let ort = "";
   let ideen = "";
   let file: File | null = null;
+  let lat: number | null = null;
+  let lng: number | null = null;
 
   let loading = false;
   let errorMessage = "";
@@ -102,6 +105,12 @@
       imageUrls = imageUrl ? [imageUrl] : [];
     }
 
+    if (!lat || !lng) {
+      errorMessage = "Bitte setze einen Standort auf der Karte.";
+      loading = false;
+      return;
+    }
+
     const { data: insertData, error: insertError } = await supabase
       .from("bucketlist")
       .insert({
@@ -110,7 +119,9 @@
         location: ort,
         description: ideen,
         cover_image_url: imageUrl,
-        images: imageUrls
+        images: imageUrls,
+        lat,
+        lng
       })
       .select()
       .single();
@@ -180,6 +191,13 @@
           Bilder hochladen
           <input type="file" accept="image/*" on:change={handleFileChange} />
         </label>
+
+        <LocationPicker
+          bind:lat
+          bind:lng
+          color="#2563eb"
+          label="Standort setzen (Bucketlist)"
+        />
 
         <label>
           Stichpunkte / Ideen
