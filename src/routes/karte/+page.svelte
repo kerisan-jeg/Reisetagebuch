@@ -30,6 +30,9 @@
   let map: any;
   let globeMap: any;
   let markerById: Record<string, any> = {};
+  let searchMarkerMap: any = null;
+  let searchMarkerGlobe: any = null;
+  let userInteracting = false;
 
   let globeReisen: { lat: number; lng: number; label: string; id: string; location?: string | null; img?: string | null }[] = [];
   let globeBucket: { lat: number; lng: number; label: string; id: string; location?: string | null; img?: string | null }[] = [];
@@ -39,6 +42,10 @@
   let spinPausedTimer: ReturnType<typeof setTimeout> | null = null;
   let globeCenter = { lat: 15, lng: 0 };
   let searchTerm = "";
+  let remoteSuggestions: { name: string; display: string; lat: number; lng: number }[] = [];
+  let isFetchingRemote = false;
+  let fetchDebounce: ReturnType<typeof setTimeout> | null = null;
+  let fetchController: AbortController | null = null;
   const suggestedPlaces = [
     { name: "Zuerich", country: "Schweiz", lat: 47.3769, lng: 8.5417 },
     { name: "Bern", country: "Schweiz", lat: 46.948, lng: 7.4474 },
@@ -101,6 +108,7 @@
   }
 
   function startSpin() {
+    if (activeView !== "globe") return;
     stopSpin();
     spinTimer = setInterval(() => {
       if (!globeMap) return;
@@ -125,6 +133,10 @@
     setTimeout(() => {
       if (target === "globe") {
         globeMap?.invalidateSize();
+        if (globeMap) {
+          const currentZoom = globeMap.getZoom() ?? 3;
+          globeMap.setView([globeCenter.lat, globeCenter.lng], currentZoom, { animate: true });
+        }
         startSpin();
       } else {
         map?.invalidateSize();
@@ -133,22 +145,108 @@
     }, 120);
   }
 
-  function focusFirstMatch() {
-    const term = searchTerm.trim().toLowerCase();
+  async function focusFirstMatch() {
+    const termRaw = searchTerm.trim();
+    const term = termRaw.toLowerCase();
     if (!term) return;
-    const combined = [...suggestedPlaces, ...points.filter((p) => p.lat && p.lng)];
+    pauseSpinWithResume();
+
+    const combined = [...remoteSuggestions, ...points.filter((p) => p.lat && p.lng)];
     const match = combined.find((p: any) =>
       ((p.name ?? p.title ?? "") + " " + (p.country ?? p.location ?? "")).toLowerCase().includes(term)
     );
-    if (!match || !match.lat || !match.lng) return;
-    const coords: [number, number] = [match.lat as number, match.lng as number];
-    if (map) {
-      map.flyTo(coords, Math.max(map.getZoom(), 7), { animate: true });
+
+    if (match && match.lat && match.lng) {
+      flyToCoords([match.lat as number, match.lng as number]);
       if ("id" in match) markerById[(match as any).id]?.marker?.openTooltip();
+      return;
+    }
+
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(termRaw)}`,
+        { headers: { "Accept-Language": "de" } }
+      );
+      if (!res.ok) throw new Error("Geocoding fehlgeschlagen");
+      const data = await res.json();
+      if (!data || data.length === 0) return;
+      const first = data[0];
+      const lat = parseFloat(first.lat);
+      const lng = parseFloat(first.lon);
+      flyToCoords([lat, lng]);
+    } catch (err) {
+      console.error("Geocoding Fehler:", err);
+    }
+  }
+
+  function flyToCoords(coords: [number, number]) {
+    globeCenter = { lat: coords[0], lng: coords[1] };
+    const stayOnMap = activeView === "map";
+    if (!stayOnMap) {
+      setView("globe");
+    }
+    placeSearchMarkers(coords);
+    if (map) {
+      map.flyTo(coords, Math.max(map.getZoom(), 14), { animate: true });
     }
     if (globeMap) {
-      globeMap.flyTo(coords, globeMap.getZoom(), { animate: true });
+      globeMap.flyTo(coords, 14, { animate: true });
     }
+  }
+
+  function placeSearchMarkers(coords: [number, number]) {
+    if (!L) return;
+    if (map) {
+      if (searchMarkerMap) map.removeLayer(searchMarkerMap);
+      searchMarkerMap = L.marker(coords).addTo(map);
+    }
+    if (globeMap) {
+      if (searchMarkerGlobe) globeMap.removeLayer(searchMarkerGlobe);
+      searchMarkerGlobe = L.marker(coords).addTo(globeMap);
+    }
+  }
+
+  function queueRemoteSuggestions(term: string) {
+    if (fetchDebounce) clearTimeout(fetchDebounce);
+    if (!term.trim()) {
+      remoteSuggestions = [];
+      fetchController?.abort();
+      return;
+    }
+    fetchDebounce = setTimeout(() => fetchRemoteSuggestions(term.trim()), 180);
+  }
+
+  async function fetchRemoteSuggestions(term: string) {
+    try {
+      fetchController?.abort();
+      fetchController = new AbortController();
+      isFetchingRemote = true;
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=8&q=${encodeURIComponent(term)}`,
+        { signal: fetchController.signal, headers: { "Accept-Language": "de" } }
+      );
+      if (!res.ok) throw new Error("Suche fehlgeschlagen");
+      const data = await res.json();
+      remoteSuggestions = data.map((item: any) => ({
+        name: item.display_name?.split(",")[0] ?? item.display_name,
+        display: item.display_name ?? "",
+        country: item.address?.country ?? "",
+        lat: parseFloat(item.lat),
+        lng: parseFloat(item.lon)
+      }));
+    } catch (err: any) {
+      if (err?.name !== "AbortError") {
+        console.error("Suche fehlgeschlagen:", err);
+      }
+    } finally {
+      isFetchingRemote = false;
+    }
+  }
+
+  function handleSearchInput(event: Event) {
+    const value = (event.target as HTMLInputElement).value;
+    searchTerm = value;
+    queueRemoteSuggestions(value);
   }
 
   onMount(async () => {
@@ -282,17 +380,17 @@
 
     // Globus (Leaflet mit Rund-Maske und Auto-Spin)
     globeMap = L.map(globeMapContainer, {
-      worldCopyJump: true,
+      worldCopyJump: false,
       zoomControl: false,
       attributionControl: false,
       dragging: true,
       inertia: true,
       minZoom: 2,
-      maxZoom: 5,
+      maxZoom: 18,
       maxBounds: L.latLngBounds([-85, -180], [85, 180]),
       maxBoundsViscosity: 1,
       scrollWheelZoom: true
-    }).setView([globeCenter.lat, globeCenter.lng], 2.3);
+    }).setView([globeCenter.lat, globeCenter.lng], 3);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: ""
@@ -340,8 +438,14 @@
         .on("click", () => (window.location.href = `/bucketlist/${p.id}`));
     });
 
-    globeMap.on("dragstart zoomstart", stopSpin);
-    globeMap.on("dragend zoomend", pauseSpinWithResume);
+    globeMap.on("dragstart zoomstart", () => {
+      userInteracting = true;
+      stopSpin();
+    });
+    globeMap.on("dragend zoomend", () => {
+      userInteracting = false;
+      pauseSpinWithResume();
+    });
 
     // Zentrierung begrenzen, damit keine grauen Bereiche sichtbar werden
     globeMap.on("moveend", () => {
@@ -354,7 +458,7 @@
       if (clamped.lat !== center.lat) {
         globeMap.setView([clamped.lat, clamped.lng], globeMap.getZoom(), { animate: false });
       }
-      pauseSpinWithResume();
+      globeCenter = { lat: clamped.lat, lng: center.lng };
     });
 
     startSpin();
@@ -364,6 +468,8 @@
     if (bgInterval) clearInterval(bgInterval);
     stopSpin();
     if (spinPausedTimer) clearTimeout(spinPausedTimer);
+    if (fetchDebounce) clearTimeout(fetchDebounce);
+    fetchController?.abort();
   });
 </script>
 
@@ -413,7 +519,7 @@
     max-width: 1600px;
     margin: 0 auto;
     min-height: 100vh;
-    padding: 110px 80px 80px;
+    padding: 160px 70px 120px;
     box-sizing: border-box;
     color: #fff;
   }
@@ -459,9 +565,11 @@
     background: rgba(24, 26, 33, 0.82);
     border-radius: 26px;
     box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
-    overflow: hidden;
+    overflow: visible;
     border: 1px solid rgba(255, 255, 255, 0.08);
     margin-bottom: 20px;
+    position: relative;
+    z-index: 2;
   }
 
   .card-header {
@@ -473,6 +581,7 @@
 
   .card-body {
     position: relative;
+    overflow: visible;
   }
 
   .map-container {
@@ -502,12 +611,13 @@
     width: 100%;
     display: flex;
     justify-content: center;
-    padding: 22px;
+    padding: 30px;
     box-sizing: border-box;
   }
 
   .globe-mask {
-    width: min(90vw, 720px);
+    width: min(78vw, 660px);
+    max-height: 68vh;
     aspect-ratio: 1 / 1;
     border-radius: 50%;
     overflow: hidden;
@@ -531,7 +641,7 @@
     border-radius: 12px;
     position: relative;
     overflow: visible;
-    z-index: 30;
+    z-index: 200;
   }
 
   .search-box input {
@@ -562,7 +672,7 @@
     box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
     max-height: 260px;
     overflow: auto;
-    z-index: 50;
+    z-index: 250;
   }
 
   .suggestion {
@@ -578,6 +688,19 @@
 
   .suggestion:hover {
     background: rgba(255, 255, 255, 0.04);
+  }
+
+  .suggestion small {
+    display: block;
+    color: #9ca3af;
+    margin-top: 2px;
+    line-height: 1.3;
+  }
+
+  .suggestion.loading {
+    cursor: default;
+    text-align: center;
+    color: #9ca3af;
   }
 
   .info-bar {
@@ -622,7 +745,7 @@
 
   @media (max-width: 960px) {
     .page-layer {
-      padding: 100px 24px 40px;
+      padding: 130px 24px 70px;
     }
 
     h1 {
@@ -673,34 +796,27 @@
             type="text"
             placeholder="Ort oder Name suchen..."
             bind:value={searchTerm}
+            on:input={handleSearchInput}
             on:keydown={(e) => e.key === "Enter" && focusFirstMatch()}
           />
           {#if searchTerm.trim().length > 0}
             <div class="search-suggestions">
-              {#each suggestedPlaces.filter((p) => (p.name + " " + p.country).toLowerCase().includes(searchTerm.toLowerCase())).slice(0, 12) as place}
+              {#if isFetchingRemote}
+                <div class="suggestion loading">Suche...</div>
+              {/if}
+              {#each remoteSuggestions as place}
                 <div
                   class="suggestion"
                   on:click={() => {
-                    searchTerm = `${place.name}, ${place.country}`;
-                    focusFirstMatch();
+                    searchTerm = place.display || place.name;
+                    flyToCoords([place.lat, place.lng]);
                   }}
                 >
-                  <span>{place.name}, {place.country}</span>
+                  <span>{place.name}</span>
+                  {#if place.display}<small>{place.display}</small>{/if}
                 </div>
               {/each}
-              {#if points.length > 0}
-                {#each points.filter((p) => (p.title + " " + (p.location ?? "")).toLowerCase().includes(searchTerm.toLowerCase())).slice(0, 12) as p}
-                  <div
-                    class="suggestion"
-                    on:click={() => {
-                      searchTerm = p.title + (p.location ? ` (${p.location})` : "");
-                      focusFirstMatch();
-                    }}
-                  >
-                    <span>{p.title}{p.location ? `, ${p.location}` : ""}</span>
-                  </div>
-                {/each}
-              {/if}
+              <!-- Benutzer-Einträge nicht mehr im Dropdown anzeigen -->
             </div>
           {/if}
           <button class="search-btn" on:click={focusFirstMatch}>🔍</button>
