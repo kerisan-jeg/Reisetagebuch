@@ -7,7 +7,11 @@
   let password = "";
   let errorMessage = "";
   let loading = false;
-  let socialLoading: "google" | "apple" | "" = "";
+  let socialLoading: "google" | "" = "";
+
+  const redirectTo = import.meta.env?.DEV
+    ? "http://localhost:5173/reisetagebuch"
+    : "https://DEINE-PROD-DOMAIN.ch/reisetagebuch";
 
   const slideshowImages = [
     "/landing/Berg.jpg",
@@ -36,10 +40,32 @@
       return;
     }
 
+    // Profil nach erfolgreichem Login in Mongo ablegen (best effort)
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
+      if (user) {
+        await fetch("/api/profile/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: user.id,
+            email: user.email,
+            full_name: user.user_metadata?.full_name ?? user.user_metadata?.name,
+            first_name: user.user_metadata?.first_name,
+            last_name: user.user_metadata?.last_name,
+            metadata: user.user_metadata ?? {}
+          })
+        });
+      }
+    } catch (err) {
+      console.warn("Profil Sync nach Login fehlgeschlagen:", err);
+    }
+
     goto("/reisetagebuch");
   };
 
-  const handleSocialLogin = async (provider: "google" | "apple") => {
+  const handleSocialLogin = async (provider: "google") => {
     errorMessage = "";
     if (typeof window === "undefined") return;
 
@@ -47,17 +73,17 @@
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
-        options: { redirectTo: `${window.location.origin}/reisetagebuch` }
+        options: { redirectTo }
       });
 
       if (error) {
-        errorMessage = `${provider === "google" ? "Google" : "Apple"}-Login fehlgeschlagen. Bitte spaeter erneut versuchen.`;
+        errorMessage = "Google-Login fehlgeschlagen. Bitte spaeter erneut versuchen.";
         socialLoading = "";
       }
       // Bei Erfolg uebernimmt Supabase die Weiterleitung.
     } catch (err) {
       console.error(`${provider} OAuth error:`, err);
-      errorMessage = `${provider === "google" ? "Google" : "Apple"}-Login ist aktuell nicht verfuegbar.`;
+      errorMessage = "Google-Login ist aktuell nicht verfuegbar.";
       socialLoading = "";
     }
   };
@@ -86,7 +112,7 @@
     <div class="login-card">
       <div class="card-header">
         <h2>Einloggen</h2>
-        <p>Mit E-Mail, Google oder Apple anmelden.</p>
+        <p>Mit E-Mail oder Google anmelden.</p>
       </div>
 
       <form on:submit|preventDefault={handleLogin}>
@@ -148,22 +174,6 @@
             </svg>
           </span>
           {socialLoading === "google" ? "Weiter zu Google..." : "Mit Google anmelden"}
-        </button>
-
-        <button
-          class="social-btn"
-          on:click={() => handleSocialLogin("apple")}
-          disabled={socialLoading === "apple"}
-        >
-          <span class="icon apple">
-            <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
-              <path
-                fill="currentColor"
-                d="M16.365 1.43c0 1.14-.414 2.077-1.236 2.8-.9.83-1.9 1.31-3 .92-.05-.11-.07-.26-.07-.46 0-1.07.4-2 .97-2.7.58-.73 1.67-1.3 2.43-1.35.03.25.05.49.05.79zM20.9 17.06c-.43 1.12-1.01 2.14-1.74 3.09-.67.87-1.29 1.48-1.86 1.83-.74.45-1.53.69-2.36.72-.6 0-1.32-.18-2.16-.54-.85-.36-1.64-.54-2.37-.54-.77 0-1.58.18-2.43.54-.85.36-1.52.55-2.01.57-.78.03-1.57-.25-2.36-.83-.52-.38-1.13-1.05-1.86-2-.8-1.05-1.46-2.28-1.96-3.71-.55-1.56-.82-3.07-.82-4.54 0-1.67.36-3.1 1.08-4.31.56-.96 1.31-1.74 2.25-2.35.93-.61 1.93-.93 2.98-.95.58 0 1.34.21 2.27.62.93.41 1.53.62 1.82.62.22 0 .85-.24 1.96-.71 1.05-.43 1.94-.61 2.68-.54 1.98.16 3.47.94 4.46 2.33-1.77 1.07-2.65 2.58-2.65 4.53 0 1.52.56 2.79 1.67 3.78.5.46 1.06.82 1.68 1.09-.14.41-.31.84-.5 1.28z"
-              />
-            </svg>
-          </span>
-          {socialLoading === "apple" ? "Weiter zu Apple..." : "Mit Apple anmelden"}
         </button>
       </div>
 
@@ -339,10 +349,6 @@
 
   .icon {
     display: inline-flex;
-  }
-
-  .icon.apple {
-    color: #0f172a;
   }
 
   .divider::before,

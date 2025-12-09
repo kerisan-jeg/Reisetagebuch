@@ -89,6 +89,9 @@
       return;
     }
 
+    // Profil in Mongo syncen (best effort, nicht blockierend)
+    syncProfileToMongo(user);
+
     const first = user.user_metadata?.first_name?.trim() ?? "";
     const last = user.user_metadata?.last_name?.trim() ?? "";
     const fullMeta = user.user_metadata?.full_name?.trim();
@@ -189,6 +192,25 @@
     globeTimer = setInterval(() => {
       globeRotation = (globeRotation + 0.5) % 360;
     }, 50);
+  }
+
+  async function syncProfileToMongo(user: any) {
+    try {
+      await fetch("/api/profile/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: user.id,
+          email: user.email,
+          full_name: user.user_metadata?.full_name ?? user.user_metadata?.name,
+          first_name: user.user_metadata?.first_name,
+          last_name: user.user_metadata?.last_name,
+          metadata: user.user_metadata ?? {}
+        })
+      });
+    } catch (err) {
+      console.warn("Profil Sync fehlgeschlagen:", err);
+    }
   }
 
   function latLngToXYZ(lat: number, lng: number, radius = 200) {
