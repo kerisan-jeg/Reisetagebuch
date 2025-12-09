@@ -41,6 +41,7 @@
   let spinTimer: ReturnType<typeof setInterval> | null = null;
   let spinPausedTimer: ReturnType<typeof setTimeout> | null = null;
   let globeCenter = { lat: 15, lng: 0 };
+  let lastSearchCoords: [number, number] | null = null;
   let searchTerm = "";
   let remoteSuggestions: { name: string; display: string; lat: number; lng: number }[] = [];
   let isFetchingRemote = false;
@@ -107,12 +108,23 @@
     currentBackground = (currentBackground + 1) % fallbackSlides.length;
   }
 
+  function clampLat(lat: number) {
+    const limit = 85;
+    return Math.min(Math.max(lat, -limit), limit);
+  }
+
+  function normalizeLng(lng: number) {
+    return ((lng + 180) % 360) - 180;
+  }
+
   function startSpin() {
     if (activeView !== "globe") return;
     stopSpin();
     spinTimer = setInterval(() => {
-      if (!globeMap) return;
-      globeCenter.lng = ((globeCenter.lng + 0.6 + 180) % 360) - 180;
+      if (!globeMap || userInteracting || activeView !== "globe") return;
+      const current = globeMap.getCenter();
+      const lat = clampLat(current.lat);
+      globeCenter = { lat, lng: normalizeLng(current.lng + 0.6) };
       globeMap.setView([globeCenter.lat, globeCenter.lng], globeMap.getZoom(), { animate: false });
     }, 120);
   }
@@ -128,21 +140,66 @@
     spinPausedTimer = setTimeout(startSpin, 10000);
   }
 
+  function refreshTiles(targetMap: any) {
+    if (!L || !targetMap?.eachLayer) return;
+    targetMap.eachLayer((layer: any) => {
+      if (layer instanceof L.TileLayer && typeof layer.redraw === "function") {
+        layer.redraw();
+      }
+    });
+  }
+
+  function clearSearchMarkers() {
+    if (map && searchMarkerMap) {
+      map.removeLayer(searchMarkerMap);
+      searchMarkerMap = null;
+    }
+    if (globeMap && searchMarkerGlobe) {
+      globeMap.removeLayer(searchMarkerGlobe);
+      searchMarkerGlobe = null;
+    }
+    lastSearchCoords = null;
+  }
+
   function setView(target: "globe" | "map") {
     activeView = target;
+    stopSpin();
+    const mapDefaultCoords: [number, number] = [51.1657, 10.4515];
+    const globeDefaultCoords: [number, number] = [15, 0];
+    clearSearchMarkers();
+
     setTimeout(() => {
       if (target === "globe") {
-        globeMap?.invalidateSize();
+        globeCenter = { lat: globeDefaultCoords[0], lng: globeDefaultCoords[1] };
         if (globeMap) {
-          const currentZoom = globeMap.getZoom() ?? 3;
-          globeMap.setView([globeCenter.lat, globeCenter.lng], currentZoom, { animate: true });
+          globeMap.invalidateSize();
+          globeMap.setView(globeDefaultCoords, 3, { animate: false });
+          refreshTiles(globeMap);
+          requestAnimationFrame(() => {
+            globeMap.invalidateSize();
+            globeMap.setView(globeDefaultCoords, 3, { animate: false });
+            refreshTiles(globeMap);
+            globeMap.fire("resize");
+            requestAnimationFrame(() => {
+              globeMap.invalidateSize();
+              refreshTiles(globeMap);
+            });
+          });
         }
         startSpin();
       } else {
-        map?.invalidateSize();
-        stopSpin();
+        if (map) {
+          map.invalidateSize();
+          map.setView(mapDefaultCoords, 5, { animate: false });
+          refreshTiles(map);
+          requestAnimationFrame(() => {
+            map.invalidateSize();
+            map.setView(mapDefaultCoords, 5, { animate: false });
+            refreshTiles(map);
+          });
+        }
       }
-    }, 120);
+    }, 80);
   }
 
   async function focusFirstMatch() {
@@ -179,18 +236,15 @@
     }
   }
 
-  function flyToCoords(coords: [number, number]) {
+  function flyToCoords(coords: [number, number], zoom = 14) {
+    lastSearchCoords = coords;
     globeCenter = { lat: coords[0], lng: coords[1] };
-    const stayOnMap = activeView === "map";
-    if (!stayOnMap) {
-      setView("globe");
-    }
     placeSearchMarkers(coords);
     if (map) {
-      map.flyTo(coords, Math.max(map.getZoom(), 14), { animate: true });
+      map.flyTo(coords, Math.max(map.getZoom(), zoom), { animate: true });
     }
     if (globeMap) {
-      globeMap.flyTo(coords, 14, { animate: true });
+      globeMap.flyTo(coords, Math.max(globeMap.getZoom(), zoom), { animate: true });
     }
   }
 
@@ -378,22 +432,33 @@
       map.fitBounds(bounds, { padding: [30, 30] });
     }
 
+    map.on("moveend", () => {
+      const c = map.getCenter();
+      globeCenter = { lat: c.lat, lng: c.lng };
+    });
+
     // Globus (Leaflet mit Rund-Maske und Auto-Spin)
     globeMap = L.map(globeMapContainer, {
-      worldCopyJump: false,
+      worldCopyJump: true,
       zoomControl: false,
       attributionControl: false,
       dragging: true,
       inertia: true,
       minZoom: 2,
       maxZoom: 18,
-      maxBounds: L.latLngBounds([-85, -180], [85, 180]),
-      maxBoundsViscosity: 1,
-      scrollWheelZoom: true
+      scrollWheelZoom: true,
+      // Begrenzung nur in der Breite, Längengrad bleibt wrap-fähig
+      maxBounds: L.latLngBounds([-85, -540], [85, 540]),
+      maxBoundsViscosity: 0
     }).setView([globeCenter.lat, globeCenter.lng], 3);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: ""
+      attribution: "",
+      continuousWorld: true,
+      noWrap: false,
+      keepBuffer: 5,
+      updateWhenIdle: false,
+      updateWhenZooming: false
     }).addTo(globeMap);
 
     globeReisen.forEach((p) => {
@@ -449,16 +514,13 @@
 
     // Zentrierung begrenzen, damit keine grauen Bereiche sichtbar werden
     globeMap.on("moveend", () => {
-      const bounds = L.latLngBounds([-85, -180], [85, 180]);
       const center = globeMap.getCenter();
-      const clamped = {
-        lat: Math.min(Math.max(center.lat, bounds.getSouth()), bounds.getNorth()),
-        lng: center.lng
-      };
-      if (clamped.lat !== center.lat) {
-        globeMap.setView([clamped.lat, clamped.lng], globeMap.getZoom(), { animate: false });
+      const clampedLat = clampLat(center.lat);
+      const lng = normalizeLng(center.lng);
+      globeCenter = { lat: clampedLat, lng };
+      if (clampedLat !== center.lat || lng !== center.lng) {
+        globeMap.setView([clampedLat, lng], globeMap.getZoom(), { animate: false });
       }
-      globeCenter = { lat: clamped.lat, lng: center.lng };
     });
 
     startSpin();
