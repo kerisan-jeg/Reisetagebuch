@@ -35,7 +35,8 @@
     });
 
     if (error) {
-      errorMessage = "E-Mail oder Passwort ist falsch.";
+      console.error("Login-Fehler:", error);
+      errorMessage = error.message || "E-Mail oder Passwort ist falsch.";
       loading = false;
       return;
     }
@@ -471,8 +472,5 @@
       font-size: clamp(2.1rem, 7vw, 2.6rem);
     }
 
-    .google-btn {
-      font-size: 0.98rem;
-    }
   }
 </style>

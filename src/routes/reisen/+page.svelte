@@ -8,7 +8,8 @@
     location: string | null;
     start_date: string | null;
     end_date: string | null;
-    cover_image_url: string | null;
+    cover_image_url?: string | null;
+    images?: string[];
   };
 
   const fallbackSlides = [
@@ -22,6 +23,16 @@
 
   let trips: Trip[] = [];
   let loading = true;
+
+  function formatDate(iso?: string | null) {
+    if (!iso) return "-";
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    const dd = String(d.getDate()).padStart(2, "0");
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${dd}.${mm}.${yyyy}`;
+  }
 
   function nextBackground() {
     currentBackground = (currentBackground + 1) % fallbackSlides.length;
@@ -41,16 +52,17 @@
       return;
     }
 
-    const { data, error } = await supabase
-      .from("reisen")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("start_date", { ascending: true });
+    try {
+      const res = await fetch(`/api/reisen?user_id=${encodeURIComponent(user.id)}`);
+      const payload = await res.json();
 
-    if (error) {
-      console.error("Fehler beim Laden der Reisen:", error);
-    } else if (data) {
-      trips = data as Trip[];
+      if (!res.ok || !payload?.ok) {
+        console.error("Fehler beim Laden der Reisen:", payload?.error || res.statusText);
+      } else {
+        trips = (payload.trips ?? []) as Trip[];
+      }
+    } catch (err) {
+      console.error("Fehler beim Laden der Reisen:", err);
     }
 
     loading = false;
@@ -243,14 +255,14 @@
   </div>
 
   {#if loading}
-    <p class="loading">Reisen werden geladen…</p>
+    <p class="loading">Reisen werden geladen...</p>
   {:else if trips.length > 0}
     <div class="trips-list">
       {#each trips as trip}
         <article class="trip-card">
           <div class="trip-image">
-            {#if trip.cover_image_url}
-              <img src={trip.cover_image_url} alt={trip.title} />
+            {#if trip.cover_image_url || trip.images?.[0]}
+              <img src={trip.cover_image_url || trip.images?.[0]} alt={trip.title} />
             {:else}
               <div class="trip-image-placeholder">Kein Bild</div>
             {/if}
@@ -258,7 +270,7 @@
           <div class="trip-body">
             <h2 class="trip-title">{trip.title}</h2>
             <p class="trip-dates">
-              {trip.start_date} – {trip.end_date}
+              {formatDate(trip.start_date)} - {formatDate(trip.end_date)}
             </p>
             <p class="trip-location">{trip.location}</p>
 
@@ -273,7 +285,7 @@
     </div>
   {:else}
     <p class="no-trips">
-      Du hast noch keine Reisen angelegt. Klicke oben auf „Neue Reise hinzufuegen“.
+      Du hast noch keine Reisen angelegt. Klicke oben auf "Neue Reise hinzufuegen".
     </p>
   {/if}
 </div>

@@ -67,15 +67,12 @@
 
 		let new_cover_url = cover_url;
 
-		// Wenn ein neues Bild hochgeladen wurde → hochladen
 		if (coverFile) {
 			const fileExt = coverFile.name.split(".").pop();
 			const fileName = `${crypto.randomUUID()}.${fileExt}`;
 			const filePath = `reisen/${user.id}/${fileName}`;
 
-			const { error: uploadError } = await supabase.storage
-				.from("uploads")
-				.upload(filePath, coverFile);
+			const { error: uploadError } = await supabase.storage.from("uploads").upload(filePath, coverFile);
 
 			if (uploadError) {
 				console.error(uploadError);
@@ -84,9 +81,7 @@
 				return;
 			}
 
-			const { data: publicUrl } = supabase.storage
-				.from("uploads")
-				.getPublicUrl(filePath);
+			const { data: publicUrl } = supabase.storage.from("uploads").getPublicUrl(filePath);
 
 			new_cover_url = publicUrl.publicUrl;
 		}
@@ -101,16 +96,45 @@
 			.eq("id", reiseId)
 			.eq("user_id", user.id);
 
-		saving = false;
-
 		if (error) {
 			console.error(error);
-			errorMessage = "Fehler beim Speichern der Änderungen.";
+			errorMessage = "Fehler beim Speichern der Aenderungen.";
+			saving = false;
 			return;
 		}
 
-		successMessage = "Änderungen gespeichert!";
-		// optional: direkt zurück zur Detail-Seite
+		const images = new_cover_url ? [new_cover_url] : cover_url ? [cover_url] : [];
+
+		try {
+			const mongoRes = await fetch("/api/reisen", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					trip: {
+						id: reiseId,
+						user_id: user.id,
+						title: titel,
+						description: beschreibung || null,
+						cover_image_url: images[0] ?? null
+					},
+					images
+				})
+			});
+
+			const mongoPayload = await mongoRes.json();
+			if (!mongoRes.ok || !mongoPayload?.ok) {
+				throw new Error(mongoPayload?.error || mongoRes.statusText);
+			}
+		} catch (err) {
+			console.error("Mongo Sync fehlgeschlagen:", err);
+			errorMessage = "Reise konnte nicht in MongoDB aktualisiert werden.";
+			saving = false;
+			return;
+		}
+
+		saving = false;
+		successMessage = "Aenderungen gespeichert!";
+		// optional: direkt zurueck zur Detail-Seite
 		// window.location.href = `/reisen/${reiseId}`;
 	}
 </script>
@@ -121,7 +145,7 @@
 		<h1 class="text-3xl font-bold mb-6 text-center">Reise bearbeiten</h1>
 
 		{#if loading}
-			<p class="text-center opacity-70">Lade Reise…</p>
+			<p class="text-center opacity-70">Lade Reise...</p>
 		{:else}
 			{#if errorMessage}
 				<p class="text-center text-red-400 mb-4">{errorMessage}</p>
@@ -167,7 +191,7 @@
 					class="w-full mt-2"
 				/>
 				<p class="text-xs opacity-60 mt-1">
-					Wenn du hier ein Bild auswählst, ersetzt es das aktuelle Titelbild.
+					Wenn du hier ein Bild auswaehlst, ersetzt es das aktuelle Titelbild.
 				</p>
 			</label>
 
@@ -176,14 +200,14 @@
 				class="w-full bg-blue-600 hover:bg-blue-700 p-3 rounded-lg text-lg font-semibold"
 				disabled={saving}
 			>
-				{saving ? "Speichere..." : "Änderungen speichern"}
+				{saving ? "Speichere..." : "Aenderungen speichern"}
 			</button>
 
 			<a
 				href={`/reisen/${reiseId}`}
 				class="block text-center opacity-80 hover:opacity-100 mt-4"
 			>
-				← Zurück zur Reise
+				&lt;- Zurueck zur Reise
 			</a>
 		{/if}
 	</div>

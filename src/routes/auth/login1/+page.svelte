@@ -30,11 +30,11 @@
   <div class="login-box">
     <h1>Login</h1>
 
-    <label>E-Mail</label>
-    <input type="email" bind:value={email} required />
+    <label for="login-email">E-Mail</label>
+    <input id="login-email" type="email" bind:value={email} required />
 
-    <label>Passwort</label>
-    <input type="password" bind:value={password} required />
+    <label for="login-password">Passwort</label>
+    <input id="login-password" type="password" bind:value={password} required />
 
     {#if errorMessage}
       <div class="error">{errorMessage}</div>

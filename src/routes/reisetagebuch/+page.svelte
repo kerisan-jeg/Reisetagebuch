@@ -316,7 +316,10 @@
                 <div
                   class="trip-card pos-{i}"
                   style={cardStyle(i)}
+                  role="button"
+                  tabindex="0"
                   on:click={() => window.location.href = `/reisen/${trip.id}`}
+                  on:keydown={(e) => (e.key === "Enter" || e.key === " ") && (window.location.href = `/reisen/${trip.id}`)}
                 >
                   <div
                     class="trip-img"
@@ -455,8 +458,15 @@
   </main>
 
   {#if bucketModalOpen}
-    <div class="modal-backdrop" on:click={() => { bucketModalOpen = false; pinMode = "none"; }}>
-      <div class="modal" on:click|stopPropagation>
+    <div
+      class="modal-backdrop"
+      role="button"
+      tabindex="0"
+      aria-label="Schliessen"
+      on:click={() => { bucketModalOpen = false; pinMode = "none"; }}
+      on:keydown={(e) => { if (e.key === "Escape" || e.key === "Enter" || e.key === " ") { bucketModalOpen = false; pinMode = "none"; } }}
+    >
+      <div class="modal" role="dialog" aria-modal="true" tabindex="-1" on:click|stopPropagation>
         <h3>Bucket-Ort speichern</h3>
         <input
           placeholder="z.B. Machu Picchu in Peru"

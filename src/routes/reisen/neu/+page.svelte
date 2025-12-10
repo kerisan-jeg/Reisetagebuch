@@ -8,8 +8,8 @@
   // ---------- Formular-Zustand ----------
   let location = "";
   let withWhom = "";
-  let costString = "";
-  let ratingString = "";
+  let costString: string | number = "";
+  let ratingString: string | number = "";
   let description = "";
   let startDate = "";
   let endDate = "";
@@ -57,8 +57,7 @@
     errorMessage = "";
 
     try {
-      const { data: userData, error: userError } =
-        await supabase.auth.getUser();
+      const { data: userData, error: userError } = await supabase.auth.getUser();
 
       if (userError || !userData?.user) {
         throw new Error("Bitte melde dich erneut an.");
@@ -73,11 +72,11 @@
           : location;
 
       const cost =
-        costString.trim() === "" ? null : Number(costString);
+        String(costString).trim() === "" ? null : Number(costString);
       const rating =
-        ratingString.trim() === "" ? null : Number(ratingString);
+        String(ratingString).trim() === "" ? null : Number(ratingString);
 
-      if (!lat || !lng) {
+      if (lat == null || lng == null) {
         throw new Error("Bitte setze einen Standort auf der Karte.");
       }
 
@@ -111,45 +110,62 @@
       let imageUrls: string[] = [];
 
       if (imagesFiles && imagesFiles.length > 0) {
+        const bucket = "uploads";
         for (const file of Array.from(imagesFiles)) {
-          const filePath =
-            tripId + "/" + crypto.randomUUID() + "-" + file.name;
+          const filePath = `reisen/${user.id}/${tripId}/${crypto.randomUUID()}-${file.name}`;
 
-          const { error: uploadError } = await supabase.storage
-            .from("trip-images") // Bucket-Name
-            .upload(filePath, file);
+          const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, file);
 
           if (uploadError) {
             console.error(uploadError);
-            throw new Error(
-              "Bild-Upload ist fehlgeschlagen. Bitte versuche es erneut."
-            );
+            throw new Error(`Bild-Upload ist fehlgeschlagen: ${uploadError.message}`);
           }
 
           const {
             data: { publicUrl }
-          } = supabase.storage
-            .from("trip-images")
-            .getPublicUrl(filePath);
+          } = supabase.storage.from(bucket).getPublicUrl(filePath);
 
           imageUrls.push(publicUrl);
         }
 
         // 3) Bild-URLs in der Reise speichern
-        const { error: updateError } = await supabase
-          .from("trips")
-          .update({ images: imageUrls })
-          .eq("id", tripId);
+        const { error: updateError } = await supabase.from("reisen").update({ images: imageUrls }).eq("id", tripId);
 
         if (updateError) {
           console.error(updateError);
-          throw new Error(
-            "Bilder konnten der Reise nicht zugeordnet werden."
-          );
+          throw new Error("Bilder konnten der Reise nicht zugeordnet werden.");
         }
       }
 
-      // zurück zur Reisen-Seite (oder Reisetagebuch – wie du willst)
+      const mongoRes = await fetch("/api/reisen", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          trip: {
+            id: tripId,
+            user_id: user.id,
+            title,
+            location,
+            with_whom: withWhom || null,
+            cost,
+            rating,
+            description: description || null,
+            start_date: startDate || null,
+            end_date: endDate || null,
+            lat,
+            lng,
+            cover_image_url: imageUrls[0] ?? null
+          },
+          images: imageUrls
+        })
+      });
+
+      const mongoPayload = await mongoRes.json();
+      if (!mongoRes.ok || !mongoPayload?.ok) {
+        console.error("Mongo Sync fehlgeschlagen:", mongoPayload?.error || mongoRes.statusText);
+        throw new Error("Reise konnte nicht in MongoDB gespeichert werden.");
+      }
+
       goto("/reisen");
     } catch (err: any) {
       console.error(err);
@@ -192,8 +208,9 @@
         >
           <div class="row">
             <div class="field">
-              <label>Ort</label>
+              <label for="trip-location">Ort</label>
               <input
+                id="trip-location"
                 type="text"
                 bind:value={location}
                 required
@@ -202,8 +219,9 @@
             </div>
 
             <div class="field">
-              <label>Mit wem</label>
+              <label for="trip-withwhom">Mit wem</label>
               <input
+                id="trip-withwhom"
                 type="text"
                 bind:value={withWhom}
                 placeholder="z.B. Luis"
@@ -213,8 +231,9 @@
 
           <div class="row">
             <div class="field">
-              <label>Kosten (CHF)</label>
+              <label for="trip-cost">Kosten (CHF)</label>
               <input
+                id="trip-cost"
                 type="number"
                 step="0.05"
                 bind:value={costString}
@@ -223,8 +242,9 @@
             </div>
 
             <div class="field">
-              <label>Rating (1–5)</label>
+              <label for="trip-rating">Rating (1-5)</label>
               <input
+                id="trip-rating"
                 type="number"
                 min="1"
                 max="5"
@@ -236,8 +256,9 @@
 
           <div class="row">
             <div class="field full">
-              <label>Bilder hochladen</label>
+              <label for="trip-images">Bilder hochladen</label>
               <input
+                id="trip-images"
                 type="file"
                 multiple
                 accept="image/*"
@@ -248,8 +269,9 @@
 
           <div class="row">
             <div class="field full">
-              <label>Beschreibung</label>
+              <label for="trip-description">Beschreibung</label>
               <textarea
+                id="trip-description"
                 rows="4"
                 bind:value={description}
                 placeholder="Besondere Momente, Highlights, Erinnerungen..."
@@ -270,13 +292,13 @@
 
           <div class="row">
             <div class="field">
-              <label>Startdatum</label>
-              <input type="date" bind:value={startDate} required />
+              <label for="trip-start">Startdatum</label>
+              <input id="trip-start" type="date" bind:value={startDate} required />
             </div>
 
             <div class="field">
-              <label>Enddatum</label>
-              <input type="date" bind:value={endDate} required />
+              <label for="trip-end">Enddatum</label>
+              <input id="trip-end" type="date" bind:value={endDate} required />
             </div>
           </div>
 
@@ -295,7 +317,7 @@
               disabled={loading}
             >
               {#if loading}
-                Speichere…
+                Speichere...
               {:else}
                 Reise speichern
               {/if}

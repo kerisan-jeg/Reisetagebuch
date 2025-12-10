@@ -3,10 +3,11 @@
 
   export let lat: number | null = null;
   export let lng: number | null = null;
-  export let color = "#e11d48"; // rot als Default
+  export let color = "#e11d48";
   export let label = "Position waehlen";
-  // Basis-Liste grosser Städte (kann erweitert werden)
-  export let suggested: { name: string; country: string; lat: number; lng: number }[] = [
+  type Suggestion = { name: string; country?: string; lat: number; lng: number; subtitle?: string };
+
+  export let suggested: Suggestion[] = [
     { name: "Zuerich", country: "Schweiz", lat: 47.3769, lng: 8.5417 },
     { name: "Bern", country: "Schweiz", lat: 46.948, lng: 7.4474 },
     { name: "Genf", country: "Schweiz", lat: 46.2044, lng: 6.1432 },
@@ -32,7 +33,7 @@
     { name: "Mailand", country: "Italien", lat: 45.4642, lng: 9.19 },
     { name: "Neapel", country: "Italien", lat: 40.8518, lng: 14.2681 },
     { name: "Amsterdam", country: "Niederlande", lat: 52.3676, lng: 4.9041 },
-    { name: "Brüssel", country: "Belgien", lat: 50.8503, lng: 4.3517 },
+    { name: "Bruessel", country: "Belgien", lat: 50.8503, lng: 4.3517 },
     { name: "Kopenhagen", country: "Daenemark", lat: 55.6761, lng: 12.5683 },
     { name: "Stockholm", country: "Schweden", lat: 59.3293, lng: 18.0686 },
     { name: "Oslo", country: "Norwegen", lat: 59.9139, lng: 10.7522 },
@@ -70,10 +71,52 @@
   let marker: any;
   let L: any;
   let search = "";
+  let suggestionsOpen = false;
+  let remoteSuggestions: Suggestion[] = [];
+  let fetchTimer: ReturnType<typeof setTimeout> | null = null;
 
-  $: filtered = suggested
-    .filter((p) => (p.name + " " + p.country).toLowerCase().includes(search.toLowerCase()))
-    .slice(0, 12);
+  $: filtered = [
+    ...remoteSuggestions,
+    ...suggested
+      .filter((p) => (p.name + " " + (p.country ?? "")).toLowerCase().includes(search.toLowerCase()))
+      .slice(0, 12)
+  ].slice(0, 12);
+
+  $: triggerFetch(search);
+
+  function triggerFetch(term: string) {
+    const query = term.trim();
+    if (fetchTimer) clearTimeout(fetchTimer);
+
+    if (query.length < 3) {
+      remoteSuggestions = [];
+      return;
+    }
+
+    fetchTimer = setTimeout(async () => {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=8&addressdetails=1`
+        );
+        if (!res.ok) throw new Error("Geocoder-Anfrage fehlgeschlagen");
+        const data = (await res.json()) as any[];
+        remoteSuggestions = data.map((item) => {
+          const name = item.display_name?.split(",")?.[0]?.trim() ?? item.display_name ?? query;
+          const country = item.address?.country ?? item.display_name?.split(",").slice(-1)[0]?.trim();
+          return {
+            name,
+            country,
+            subtitle: item.display_name,
+            lat: Number(item.lat),
+            lng: Number(item.lon)
+          } as Suggestion;
+        });
+      } catch (err) {
+        console.warn("Geocoder Fehler:", err);
+        remoteSuggestions = [];
+      }
+    }, 400);
+  }
 
   async function init() {
     const leaflet = await import("leaflet");
@@ -122,10 +165,12 @@
     });
   }
 
-  function selectSuggestion(place: { lat: number; lng: number; name: string; country: string }) {
+  function selectSuggestion(place: Suggestion) {
     lat = place.lat;
     lng = place.lng;
-    search = `${place.name}, ${place.country}`;
+    search = [place.name, place.country].filter(Boolean).join(", ");
+    suggestionsOpen = false;
+    remoteSuggestions = [];
     if (map) {
       map.flyTo([lat, lng], 7, { animate: true });
       if (!marker) {
@@ -173,13 +218,22 @@
       type="text"
       placeholder="Ort oder Land suchen..."
       bind:value={search}
+      on:input={() => (suggestionsOpen = search.trim().length > 0)}
+      on:focus={() => (suggestionsOpen = search.trim().length > 0)}
     />
-    {#if filtered.length > 0 && search.trim().length > 0}
-      <ul class="suggestions">
-        {#each filtered as place}
-          <li on:click={() => selectSuggestion(place)}>
-            <strong>{place.name}</strong>
-            <span>{place.country}</span>
+    {#if suggestionsOpen && filtered.length > 0 && search.trim().length > 0}
+      <ul class="suggestions" role="listbox">
+        {#each filtered as place, idx}
+          <li>
+            <button
+              type="button"
+              role="option"
+              aria-selected="false"
+              on:click={() => selectSuggestion(place)}
+            >
+              <strong>{place.name}</strong>
+              <span>{place.subtitle ?? place.country}</span>
+            </button>
           </li>
         {/each}
       </ul>
@@ -190,6 +244,7 @@
 
 <style>
   .picker {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -204,7 +259,7 @@
 
   .search-row {
     position: relative;
-    z-index: 50; /* über der Karte */
+    z-index: 40;
   }
 
   .search-row input {
@@ -226,22 +281,29 @@
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
     max-height: 220px;
     overflow: auto;
-    z-index: 5;
+    z-index: 80;
     list-style: none;
     margin: 0;
     padding: 6px;
   }
 
-  .suggestions li {
+  .suggestions li button {
+    width: 100%;
+    text-align: left;
     padding: 8px 10px;
     cursor: pointer;
     display: flex;
     justify-content: space-between;
     gap: 12px;
+    border: none;
+    background: transparent;
+    font: inherit;
   }
 
-  .suggestions li:hover {
+  .suggestions li button:hover,
+  .suggestions li button:focus-visible {
     background: #f1f5f9;
+    outline: none;
   }
 
   .suggestions strong {
@@ -262,6 +324,8 @@
   }
 
   .map {
+    position: relative;
+    z-index: 1;
     width: 100%;
     height: 260px;
     border-radius: 14px;
