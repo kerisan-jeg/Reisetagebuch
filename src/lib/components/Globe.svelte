@@ -235,7 +235,7 @@
     on:pointermove={onPointerMove}
     on:pointerup={onPointerUp}
     on:pointerleave={onPointerUp}
-  />
+  ></canvas>
   <div class="legend">
     <span class="dot reise"></span> Reisen
     <span class="dot bucket"></span> Bucketlist

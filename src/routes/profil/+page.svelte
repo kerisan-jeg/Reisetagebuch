@@ -24,6 +24,7 @@
   let errorMessage = "";
   let reisenCount = 0;
   let bucketCount = 0;
+  let reisenCostSum = 0;
   let deleting = false;
   let deleteMessage = "";
   let confirmingDelete = false;
@@ -67,13 +68,17 @@
 
     deletionUntil = user.deletion_requested_until ?? null;
 
-    const [reisenRes, bucketRes] = await Promise.all([
+    const [reisenRes, bucketRes, kostenRes] = await Promise.all([
       supabase.from("reisen").select("id", { count: "exact", head: true }).eq("user_id", u.id),
-      supabase.from("bucketlist").select("id", { count: "exact", head: true }).eq("user_id", u.id)
+      supabase.from("bucketlist").select("id", { count: "exact", head: true }).eq("user_id", u.id),
+      supabase.from("reisen").select("cost").eq("user_id", u.id)
     ]);
 
     reisenCount = reisenRes.count ?? 0;
     bucketCount = bucketRes.count ?? 0;
+    reisenCostSum = (kostenRes.data ?? [])
+      .map((r: any) => Number(r.cost) || 0)
+      .reduce((sum: number, v: number) => sum + v, 0);
     loading = false;
   }
 
@@ -187,6 +192,11 @@
           <p class="label">Bucketlist</p>
           <p class="value">{bucketCount}</p>
           <p class="hint">Ziele, die noch warten</p>
+        </div>
+        <div class="card stat-card">
+          <p class="label">Gesamtkosten Reisen</p>
+          <p class="value">{reisenCostSum}</p>
+          <p class="hint">CHF (Summe aller Trips)</p>
         </div>
       </section>
 

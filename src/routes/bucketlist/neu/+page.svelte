@@ -7,9 +7,10 @@
 
   let ort = "";
   let ideen = "";
-  let file: File | null = null;
-  let lat: number | null = null;
-  let lng: number | null = null;
+let file: File | null = null;
+let lat: number | null = null;
+let lng: number | null = null;
+let year = "";
 
   let loading = false;
   let errorMessage = "";
@@ -39,7 +40,7 @@
   function handleBulletsFocus(event: FocusEvent) {
     const target = event.target as HTMLTextAreaElement;
     if (!ideen || ideen.trim() === "") {
-      ideen = "• ";
+      ideen = "- ";
       queueMicrotask(() => {
         const pos = ideen.length;
         target.selectionStart = target.selectionEnd = pos;
@@ -53,7 +54,7 @@
     const target = event.target as HTMLTextAreaElement;
     const start = target.selectionStart;
     const end = target.selectionEnd;
-    const prefix = "• ";
+    const prefix = "- ";
     const value = ideen ?? "";
     const before = value.slice(0, start);
     const after = value.slice(end);
@@ -118,6 +119,7 @@
         title: ort,
         location: ort,
         description: ideen,
+        year: year || null,
         cover_image_url: imageUrl,
         images: imageUrls,
         lat,
@@ -144,7 +146,8 @@
           item_id: itemId,
           title: ort,
           location: ort,
-          images: imageUrls
+          images: imageUrls,
+          year: year || null
         })
       });
     } catch (logErr) {
@@ -182,14 +185,12 @@
       {/if}
 
       <form on:submit|preventDefault={handleSubmit} class="form">
-        <label>
-          Ort
-          <input type="text" bind:value={ort} required placeholder="z.B. Bora Bora" />
+        <label for="bl-ort">`n          Ort
+          <input id="bl-ort" type="text" bind:value={ort} required placeholder="z.B. Bora Bora" />
         </label>
 
-        <label>
-          Bilder hochladen
-          <input type="file" accept="image/*" on:change={handleFileChange} />
+        <label for="bl-file">`n          Bilder hochladen
+          <input id="bl-file" type="file" accept="image/*" on:change={handleFileChange} />
         </label>
 
         <LocationPicker
@@ -199,9 +200,8 @@
           label="Standort setzen (Bucketlist)"
         />
 
-        <label>
-          Stichpunkte / Ideen
-          <textarea
+        <label for="bl-ideen">`n          Stichpunkte / Ideen
+          <textarea id="bl-ideen"
             rows="6"
             bind:value={ideen}
             placeholder="• Must-See Spots&#10;• Restaurants ausprobieren&#10;• Aktivitäten im/am Wasser"
@@ -345,3 +345,5 @@
     font-weight: 600;
   }
 </style>
+
+

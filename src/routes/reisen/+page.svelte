@@ -162,6 +162,23 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    position: relative;
+  }
+
+  .card-action {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.65);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    text-decoration: none;
+    font-size: 1.1rem;
+    z-index: 2;
   }
 
   .trip-image {
@@ -260,6 +277,9 @@
     <div class="trips-list">
       {#each trips as trip}
         <article class="trip-card">
+          <a class="card-action" href={`/reisen/${trip.id}`} aria-label="Details öffnen">
+            <span>⋯</span>
+          </a>
           <div class="trip-image">
             {#if trip.cover_image_url || trip.images?.[0]}
               <img src={trip.cover_image_url || trip.images?.[0]} alt={trip.title} />

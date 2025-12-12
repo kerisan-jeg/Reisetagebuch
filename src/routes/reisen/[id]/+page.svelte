@@ -34,6 +34,8 @@
   let dragStart = { x: 0, y: 0 };
   let offsetStart = { x: 0, y: 0 };
   let cropImageSrc = "";
+  let cropWidth = 900;
+  let cropHeight = 520;
 
   onMount(async () => {
     const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -111,6 +113,17 @@
     cropMode = true;
     cropZoom = 1;
     cropOffset = { x: 0, y: 0 };
+    // Groesse dynamisch an Bild-/Viewport-Verhaeltnis anpassen
+    const maxW = Math.min(window.innerWidth * 0.9, 900);
+    const maxH = Math.min(window.innerHeight * 0.8, 700);
+    cropWidth = maxW;
+    cropHeight = Math.min(maxH, 520);
+    const img = new Image();
+    img.onload = () => {
+      const aspect = img.height / img.width;
+      cropHeight = Math.min(maxH, Math.max(320, maxW * aspect));
+    };
+    img.src = cropImageSrc;
     if (autoSlide) {
       clearInterval(autoSlide);
       autoSlide = null;
@@ -263,6 +276,13 @@
 
       <p class="meta"><strong>Ort:</strong> {reise.location}</p>
       <p class="meta"><strong>Zeitraum:</strong> {formatDate(reise.start_date)} - {formatDate(reise.end_date)}</p>
+      {#if reise.lat != null && reise.lng != null}
+        <p class="meta">
+          <a class="map-link" href={`/karte?lat=${reise.lat}&lng=${reise.lng}`} aria-label="Auf Karte anzeigen">
+            Auf Karte ansehen
+          </a>
+        </p>
+      {/if}
       {#if reise.rating != null}
         <p class="meta"><strong>Bewertung:</strong> {reise.rating}</p>
       {/if}
@@ -283,6 +303,7 @@
       <div
         class="crop-area"
         bind:this={cropContainer}
+        style={`width:${cropWidth}px; height:${cropHeight}px;`}
         on:mousedown|preventDefault={onDragStart}
         on:mousemove|preventDefault={onDragMove}
         on:mouseup={onDragEnd}
@@ -430,11 +451,11 @@
 
   .crop-frame {
     position: absolute;
-    inset: 8%;
-    border: 2px solid rgba(255, 255, 255, 0.7);
+    inset: 5%;
+    border: 2px solid rgba(255, 255, 255, 0.8);
     border-radius: 12px;
     pointer-events: none;
-    box-shadow: 0 0 0 9999px rgba(0,0,0,0.35);
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.25);
   }
 
   .crop-controls {

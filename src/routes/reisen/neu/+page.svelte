@@ -235,21 +235,21 @@
               <input
                 id="trip-cost"
                 type="number"
-                step="0.05"
+                step="5"
                 bind:value={costString}
                 placeholder="z.B. 1200"
               />
             </div>
 
             <div class="field">
-              <label for="trip-rating">Rating (1-5)</label>
+              <label for="trip-rating">Rating (1-10)</label>
               <input
                 id="trip-rating"
                 type="number"
                 min="1"
-                max="5"
+                max="10"
                 bind:value={ratingString}
-                placeholder="z.B. 5"
+                placeholder="z.B. 8"
               />
             </div>
           </div>

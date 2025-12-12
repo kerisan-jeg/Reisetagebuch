@@ -867,16 +867,10 @@
                 <div class="suggestion loading">Suche...</div>
               {/if}
               {#each remoteSuggestions as place}
-                <div
-                  class="suggestion"
-                  on:click={() => {
-                    searchTerm = place.display || place.name;
-                    flyToCoords([place.lat, place.lng]);
-                  }}
-                >
+                <button type="button" class="suggestion" on:click={() => { searchTerm = place.display || place.name; flyToCoords([place.lat, place.lng]); }}>
                   <span>{place.name}</span>
                   {#if place.display}<small>{place.display}</small>{/if}
-                </div>
+                </button>
               {/each}
               <!-- Benutzer-Einträge nicht mehr im Dropdown anzeigen -->
             </div>
@@ -891,3 +885,5 @@
     </div>
   {/if}
 </div>
+
+

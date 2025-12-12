@@ -9,6 +9,7 @@
     start_date: string | null;
     end_date: string | null;
     cover_image_url: string | null;
+    year?: string | null;
   };
 
   const fallbackSlides = [
@@ -160,6 +161,23 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    position: relative;
+  }
+
+  .card-action {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.65);
+    color: #fff;
+    display: grid;
+    place-items: center;
+    text-decoration: none;
+    font-size: 1.1rem;
+    z-index: 2;
   }
 
   .item-image {
@@ -266,6 +284,9 @@
     <div class="items-list">
       {#each items as item}
         <article class="item-card">
+          <a class="card-action" href={`/bucketlist/${item.id}`} aria-label="Details öffnen">
+            <span>⋯</span>
+          </a>
           <div class="item-image">
             {#if item.cover_image_url}
               <img src={item.cover_image_url} alt={item.title} />
@@ -276,7 +297,7 @@
           <div class="item-body">
             <h2 class="item-title">{item.title}</h2>
             <p class="item-dates">
-              {item.start_date} – {item.end_date}
+              Voraussichtlich: {item.year ?? "�"}
             </p>
             <p class="item-location">{item.location}</p>
 
