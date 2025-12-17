@@ -25,6 +25,7 @@
     title: string;
     location: string | null;
     year: string | null;
+    cover_image_url?: string | null;
     lat?: number | null;
     lng?: number | null;
   };
@@ -35,7 +36,8 @@
   let userName = "";
   let trips: Trip[] = [];
   let loading = true;
-  let errorMessage = "";
+  let reisenError = "";
+  let bucketError = "";
   let bucketItems: Bucket[] = [];
 
   let heroIndex = 0;
@@ -68,6 +70,8 @@
 
     let tripsLoaded = false;
     let reisenErrorMsg = "";
+    reisenError = "";
+    bucketError = "";
 
     // Reisen: zuerst Supabase, sonst Mongo-Fallback
     const { data: tripsData, error: tripsError } = await supabase
@@ -101,26 +105,42 @@
     }
 
     // Bucketlist laden (Supabase; tolerant falls Spalten fehlen)
-    const { data: bucketData, error: bucketError } = await supabase
+    const { data: bucketData, error: bucketErrorRaw } = await supabase
       .from("bucketlist")
-      .select("*")
+      .select("id,title,location,year,cover_image_url,lat,lng")
       .eq("user_id", user.id)
       .order("year", { ascending: true });
 
-    if (bucketError) {
-      console.error("Bucketlist Fehler:", bucketError);
+    if (bucketErrorRaw) {
+      const needsUserIdFallback =
+        bucketErrorRaw?.message?.toLowerCase().includes("user_id") ||
+        bucketErrorRaw?.message?.toLowerCase().includes("column") ||
+        bucketErrorRaw?.message?.toLowerCase().includes("permission");
+
+      const fallback = needsUserIdFallback
+        ? await supabase
+            .from("bucketlist")
+            .select("id,title,location,year,cover_image_url,lat,lng")
+            .order("year", { ascending: true })
+        : await supabase
+            .from("bucketlist")
+            .select("id,title,location,year,cover_image_url,lat,lng")
+            .eq("user_id", user.id)
+            .order("year", { ascending: true });
+
+      if (fallback.error) {
+        console.error("Bucketlist Fehler:", fallback.error);
+        bucketError = "Bucketlist konnte nicht geladen werden.";
+      } else {
+        bucketItems = (fallback.data ?? []) as Bucket[];
+        bucketError = "";
+      }
     } else {
       bucketItems = (bucketData ?? []) as Bucket[];
     }
 
-    if (!tripsLoaded && bucketError) {
-      errorMessage = "Reisen und Bucketlist konnten nicht geladen werden.";
-    } else if (!tripsLoaded) {
-      errorMessage = "Reisen konnten nicht geladen werden.";
-    } else if (bucketError) {
-      errorMessage = "Bucketlist konnte nicht geladen werden.";
-    } else {
-      errorMessage = "";
+    if (!tripsLoaded && reisenErrorMsg) {
+      reisenError = "Reisen konnten nicht geladen werden.";
     }
 
     loading = false;
@@ -198,7 +218,9 @@
                 <p class="label">Reisen</p>
                 <p class="hint">Deine Trips im Ueberblick</p>
               </div>
-              {#if trips.length === 0}
+              {#if reisenError}
+                <div class="inline-error">{reisenError}</div>
+              {:else if trips.length === 0}
                 <div class="info-box neutral">Du hast noch keine Reisen erfasst.</div>
               {:else}
                 <div class="list-cards">
@@ -230,7 +252,9 @@
                 <p class="hint">Deine naechsten Ziele</p>
               </div>
               <div class="pill-wrap">
-                {#if bucketItems.length === 0}
+                {#if bucketError}
+                  <div class="inline-error">{bucketError}</div>
+                {:else if bucketItems.length === 0}
                   <div class="pill neutral-pill">Noch keine Ziele erfasst.</div>
                 {:else}
                   {#each bucketItems as item}
@@ -241,9 +265,6 @@
                   {/each}
                 {/if}
               </div>
-              {#if errorMessage}
-                <div class="inline-error">{errorMessage}</div>
-              {/if}
             </section>
           </div>
         </div>
