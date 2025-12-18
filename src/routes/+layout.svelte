@@ -2,6 +2,7 @@
   import { page } from "$app/stores";
   import { goto } from "$app/navigation";
   import { supabase } from "$lib/supabaseClient";
+  import { availableLanguages, lang, t } from "$lib/i18n";
 
   // aktueller Pfad
   $: currentPath = $page.url.pathname;
@@ -26,6 +27,15 @@
       goto("/", { replaceState: true });
     }
   };
+
+  let selectedLang = "de";
+  $: lang.subscribe((val) => (selectedLang = val));
+
+  function changeLang(code: string) {
+    if (availableLanguages.some((l) => l.code === code)) {
+      lang.set(code as any);
+    }
+  }
 </script>
 
 {#if !hideNav}
@@ -35,11 +45,21 @@
     </div>
 
     <div class="nav-links">
-      <a href="/reisen" class:selected={currentPath.startsWith("/reisen")}>Reisen</a>
-      <a href="/bucketlist" class:selected={currentPath.startsWith("/bucketlist")}>Bucketlist</a>
-      <a href="/karte" class:selected={currentPath.startsWith("/karte")}>Karte</a>
-      <a href="/profil" class:selected={currentPath.startsWith("/profil")}>Profil</a>
-      <button on:click={handleLogout} class="logout">Logout</button>
+      <a href="/reisen" class:selected={currentPath.startsWith("/reisen")}>{$t("nav.reisen")}</a>
+      <a href="/bucketlist" class:selected={currentPath.startsWith("/bucketlist")}>{$t("nav.bucketlist")}</a>
+      <a href="/karte" class:selected={currentPath.startsWith("/karte")}>{$t("nav.karte")}</a>
+      <a href="/profil" class:selected={currentPath.startsWith("/profil")}>{$t("nav.profil")}</a>
+      <button on:click={handleLogout} class="logout">{$t("nav.logout")}</button>
+      <select
+        class="lang-select"
+        bind:value={selectedLang}
+        on:change={(e) => changeLang((e.target as HTMLSelectElement).value)}
+        aria-label={$t("nav.language")}
+      >
+        {#each availableLanguages as l}
+          <option value={l.code}>{l.label}</option>
+        {/each}
+      </select>
     </div>
   </nav>
 {/if}
@@ -83,7 +103,7 @@
   .nav-links {
     display: flex;
     align-items: center;
-    gap: 1.8rem;
+    gap: 1.1rem;
   }
 
   .nav-links a {
@@ -119,6 +139,23 @@
 
   .logout:hover {
     background: #dc2626;
+  }
+
+  .lang-select {
+    min-width: 130px;
+    padding: 0.45rem 0.7rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: #0f172a;
+    color: #e5e7eb;
+    cursor: pointer;
+    font-size: 1rem;
+    outline: none;
+    height: 40px;
+  }
+
+  .lang-select option {
+    color: #0f172a;
   }
 
   /* ---------- MAIN ---------- */

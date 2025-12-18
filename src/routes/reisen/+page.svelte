@@ -1,6 +1,7 @@
 <script lang="ts">
   import { supabase } from "$lib/supabaseClient";
   import { onMount } from "svelte";
+  import { t } from "$lib/i18n";
 
   type Trip = {
     id: string;
@@ -264,15 +265,15 @@
 <!-- Inhalt -->
 <div class="page-layer">
   <div class="header-row">
-    <h1>Meine Reisen</h1>
+    <h1>{$t("trips.title")}</h1>
 
     <a class="new-trip-button" href="/reisen/neu">
-      Neue Reise hinzufuegen
+      {$t("trips.cta")}
     </a>
   </div>
 
   {#if loading}
-    <p class="loading">Reisen werden geladen...</p>
+    <p class="loading">{$t("trips.loading")}</p>
   {:else if trips.length > 0}
     <div class="trips-list">
       {#each trips as trip}
@@ -305,7 +306,7 @@
     </div>
   {:else}
     <p class="no-trips">
-      Du hast noch keine Reisen angelegt. Klicke oben auf "Neue Reise hinzufuegen".
+      {$t("trips.empty")}
     </p>
   {/if}
 </div>

@@ -3,6 +3,7 @@
   import { fade } from "svelte/transition";
   import { supabase } from "$lib/supabaseClient";
   import MapGlobeCard from "$lib/components/MapGlobeCard.svelte";
+  import { t } from "$lib/i18n";
 
   type Trip = {
     id: string;
@@ -117,7 +118,8 @@
         bucketErrorRaw?.message?.toLowerCase().includes("column") ||
         bucketErrorRaw?.message?.toLowerCase().includes("permission");
 
-      const fallback = needsUserIdFallback
+      // Supabase-Fallback (ohne Filter) oder API-Fallback (Mongo)
+      const supaFallback = needsUserIdFallback
         ? await supabase
             .from("bucketlist")
             .select("id,title,location,year,cover_image_url,lat,lng")
@@ -128,11 +130,22 @@
             .eq("user_id", user.id)
             .order("year", { ascending: true });
 
-      if (fallback.error) {
-        console.error("Bucketlist Fehler:", fallback.error);
-        bucketError = "Bucketlist konnte nicht geladen werden.";
+      if (supaFallback.error) {
+        // Mongo-Fallback
+        try {
+          const res = await fetch(`/api/bucketlist?user_id=${encodeURIComponent(user.id)}`);
+          const payload = await res.json();
+          if (res.ok && payload?.ok) {
+            bucketItems = (payload.bucketlist ?? []) as Bucket[];
+            bucketError = "";
+          } else {
+            bucketError = payload?.error || "Bucketlist konnte nicht geladen werden.";
+          }
+        } catch (err) {
+          bucketError = err instanceof Error ? err.message : "Bucketlist konnte nicht geladen werden.";
+        }
       } else {
-        bucketItems = (fallback.data ?? []) as Bucket[];
+        bucketItems = (supaFallback.data ?? []) as Bucket[];
         bucketError = "";
       }
     } else {
@@ -202,8 +215,8 @@
     <header class="header">
       <div class="hero-text">
         <p class="eyebrow">Reisetagebuch</p>
-        <h1>Hallo {userName}</h1>
-        <p class="lede">Deine Reisen, Bucketlist und Globe in einer Ansicht.</p>
+        <h1>{$t("home.title").replace("{name}", userName)}</h1>
+        <p class="lede">{$t("home.subtitle")}</p>
       </div>
     </header>
 
@@ -215,13 +228,13 @@
           <div class="panel content-panel">
             <section class="travels">
               <div class="section-head">
-                <p class="label">Reisen</p>
-                <p class="hint">Deine Trips im Ueberblick</p>
+                <p class="label">{$t("home.trips")}</p>
+                <p class="hint">{$t("home.tripsHint")}</p>
               </div>
               {#if reisenError}
                 <div class="inline-error">{reisenError}</div>
               {:else if trips.length === 0}
-                <div class="info-box neutral">Du hast noch keine Reisen erfasst.</div>
+                <div class="info-box neutral">{$t("home.tripsEmpty")}</div>
               {:else}
                 <div class="list-cards">
                 {#each trips as trip}
@@ -248,14 +261,14 @@
 
             <section class="bucket">
               <div class="section-head">
-                <p class="label">Bucket List</p>
-                <p class="hint">Deine naechsten Ziele</p>
+                <p class="label">{$t("home.bucket")}</p>
+                <p class="hint">{$t("home.bucketHint")}</p>
               </div>
               <div class="pill-wrap">
                 {#if bucketError}
-                  <div class="inline-error">{bucketError}</div>
+                  <div class="inline-error">{bucketError || $t("home.bucketError")}</div>
                 {:else if bucketItems.length === 0}
-                  <div class="pill neutral-pill">Noch keine Ziele erfasst.</div>
+                  <div class="pill neutral-pill">{$t("home.bucketEmpty")}</div>
                 {:else}
                   {#each bucketItems as item}
                     <div class="pill">
@@ -270,7 +283,7 @@
         </div>
 
         <div class="right-col">
-          <MapGlobeCard />
+          <MapGlobeCard title={$t("home.map")} />
         </div>
       </section>
     {/if}

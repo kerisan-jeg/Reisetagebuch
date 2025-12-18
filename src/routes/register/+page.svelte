@@ -1,6 +1,8 @@
 <script lang="ts">
   import { supabase } from "$lib/supabaseClient";
+  import { goto } from "$app/navigation";
   import Slideshow from "$lib/components/Slideshow.svelte";
+  import { t } from "$lib/i18n";
 
   const slideshowImages = [
     "/landing/Berg.jpg",
@@ -34,7 +36,7 @@
 
     loading = true;
 
-    const { error } = await supabase.auth.signUp({
+    const { error, data } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -50,12 +52,31 @@
     loading = false;
 
     if (error) {
-      errorMessage = error.message;
+      const msg = error.message?.toLowerCase() ?? "";
+      const duplicate =
+        error.code === "user_already_exists" ||
+        msg.includes("already registered") ||
+        msg.includes("already exists") ||
+        msg.includes("duplicate");
+
+      if (duplicate) {
+        errorMessage = $t("register.duplicate");
+      } else {
+        errorMessage = error.message || "Registrierung fehlgeschlagen.";
+      }
       return;
     }
 
-    message =
-      "Registrierung erfolgreich! Bitte bestaetige deine E-Mail-Adresse. Ueberpruefe dein Postfach (und Spam-Ordner).";
+    // Supabase kann bei bestehenden Konten ein "erfolgreiches" Signup mit leerem identities liefern
+    if (data?.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) {
+      errorMessage = $t("register.duplicate");
+      return;
+    }
+
+    message = $t("register.success");
+
+    // Direkt zum Login mit Hinweis zur E-Mail-Bestaetigung
+    goto(`/?verify=1&email=${encodeURIComponent(email)}`);
   }
 </script>
 
@@ -65,8 +86,8 @@
 
   <div class="register-content">
     <div class="register-text">
-      <h1>Registrieren</h1>
-      <p>Erstelle dein Reisetagebuch-Konto und halte deine schoensten Erinnerungen fest.</p>
+      <h1>{$t("register.title")}</h1>
+      <p>{$t("register.subtitle")}</p>
     </div>
 
     <div class="register-card">
@@ -80,22 +101,22 @@
 
       <form class="form" on:submit|preventDefault={registerUser}>
         <label>
-          <span>Vorname</span>
-          <input type="text" bind:value={firstName} placeholder="Vorname" />
+          <span>{$t("register.firstname")}</span>
+          <input type="text" bind:value={firstName} placeholder={$t("register.firstname")} />
         </label>
 
         <label>
-          <span>Nachname</span>
-          <input type="text" bind:value={lastName} placeholder="Nachname" />
+          <span>{$t("register.lastname")}</span>
+          <input type="text" bind:value={lastName} placeholder={$t("register.lastname")} />
         </label>
 
         <label>
-          <span>Geburtsdatum</span>
+          <span>{$t("register.birthday")}</span>
           <input type="date" bind:value={birthday} />
         </label>
 
         <label>
-          <span>E-Mail</span>
+          <span>{$t("register.email")}</span>
           <input
             type="email"
             bind:value={email}
@@ -105,7 +126,7 @@
         </label>
 
         <label>
-          <span>Passwort</span>
+          <span>{$t("register.password")}</span>
           <input
             type="password"
             bind:value={password}
@@ -115,13 +136,13 @@
         </label>
 
         <button type="submit" disabled={loading}>
-          {loading ? "Registriere..." : "Registrieren"}
+          {loading ? $t("register.loading") : $t("register.submit")}
         </button>
       </form>
 
       <p class="bottom-link">
-        Schon ein Konto?
-        <a href="/">Jetzt einloggen</a>
+        {$t("register.noAccount")}
+        <a href="/">{$t("register.loginNow")}</a>
       </p>
     </div>
   </div>

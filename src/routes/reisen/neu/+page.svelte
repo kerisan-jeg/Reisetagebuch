@@ -4,6 +4,7 @@
   import { onMount, onDestroy } from "svelte";
   import { fade } from "svelte/transition";
   import LocationPicker from "$lib/components/LocationPicker.svelte";
+  import { t } from "$lib/i18n";
 
   // ---------- Formular-Zustand ----------
   let location = "";
@@ -60,7 +61,7 @@
       const { data: userData, error: userError } = await supabase.auth.getUser();
 
       if (userError || !userData?.user) {
-        throw new Error("Bitte melde dich erneut an.");
+        throw new Error($t("tripForm.errorAuth"));
       }
 
       const user = userData.user;
@@ -77,7 +78,7 @@
         String(ratingString).trim() === "" ? null : Number(ratingString);
 
       if (lat == null || lng == null) {
-        throw new Error("Bitte setze einen Standort auf der Karte.");
+        throw new Error($t("tripForm.errorLocation"));
       }
 
       // 1) Reise speichern (Tabelle: reisen)
@@ -101,7 +102,7 @@
 
       if (tripError || !tripData) {
         console.error(tripError);
-        throw new Error("Reise konnte nicht gespeichert werden.");
+        throw new Error($t("tripForm.errorSave"));
       }
 
       const tripId: string = tripData.id;
@@ -118,7 +119,7 @@
 
           if (uploadError) {
             console.error(uploadError);
-            throw new Error(`Bild-Upload ist fehlgeschlagen: ${uploadError.message}`);
+            throw new Error(`${$t("tripForm.errorUpload")} ${uploadError.message ?? ""}`.trim());
           }
 
           const {
@@ -133,7 +134,7 @@
 
         if (updateError) {
           console.error(updateError);
-          throw new Error("Bilder konnten der Reise nicht zugeordnet werden.");
+          throw new Error($t("tripForm.errorSave"));
         }
       }
 
@@ -163,14 +164,14 @@
       const mongoPayload = await mongoRes.json();
       if (!mongoRes.ok || !mongoPayload?.ok) {
         console.error("Mongo Sync fehlgeschlagen:", mongoPayload?.error || mongoRes.statusText);
-        throw new Error("Reise konnte nicht in MongoDB gespeichert werden.");
+        throw new Error($t("tripForm.errorMongo"));
       }
 
       goto("/reisen");
     } catch (err: any) {
       console.error(err);
       errorMessage =
-        err?.message || "Es ist ein Fehler beim Speichern aufgetreten.";
+        err?.message || $t("tripForm.errorSave");
     } finally {
       loading = false;
     }
@@ -178,7 +179,7 @@
 </script>
 
 <svelte:head>
-  <title>Neue Reise hinzufuegen</title>
+  <title>{$t("tripForm.title")}</title>
 </svelte:head>
 
 <div class="page">
@@ -196,7 +197,7 @@
 
     <div class="hero-overlay">
       <div class="form-card">
-        <h1>Neue Reise hinzufuegen</h1>
+        <h1>{$t("tripForm.title")}</h1>
 
         {#if errorMessage}
           <p class="error">{errorMessage}</p>
@@ -208,55 +209,55 @@
         >
           <div class="row">
             <div class="field">
-              <label for="trip-location">Ort</label>
+              <label for="trip-location">{$t("tripForm.location")}</label>
               <input
                 id="trip-location"
                 type="text"
                 bind:value={location}
                 required
-                placeholder="z.B. Paris"
+                placeholder={$t("tripForm.placeholder.location")}
               />
             </div>
 
             <div class="field">
-              <label for="trip-withwhom">Mit wem</label>
+              <label for="trip-withwhom">{$t("tripForm.withWhom")}</label>
               <input
                 id="trip-withwhom"
                 type="text"
                 bind:value={withWhom}
-                placeholder="z.B. Luis"
+                placeholder={$t("tripForm.placeholder.withWhom")}
               />
             </div>
           </div>
 
           <div class="row">
             <div class="field">
-              <label for="trip-cost">Kosten (CHF)</label>
+              <label for="trip-cost">{$t("tripForm.cost")}</label>
               <input
                 id="trip-cost"
                 type="number"
                 step="5"
                 bind:value={costString}
-                placeholder="z.B. 1200"
+                placeholder={$t("tripForm.placeholder.cost")}
               />
             </div>
 
             <div class="field">
-              <label for="trip-rating">Rating (1-10)</label>
+              <label for="trip-rating">{$t("tripForm.rating")}</label>
               <input
                 id="trip-rating"
                 type="number"
                 min="1"
                 max="10"
                 bind:value={ratingString}
-                placeholder="z.B. 8"
+                placeholder={$t("tripForm.placeholder.rating")}
               />
             </div>
           </div>
 
           <div class="row">
             <div class="field full">
-              <label for="trip-images">Bilder hochladen</label>
+              <label for="trip-images">{$t("tripForm.images")}</label>
               <input
                 id="trip-images"
                 type="file"
@@ -269,12 +270,12 @@
 
           <div class="row">
             <div class="field full">
-              <label for="trip-description">Beschreibung</label>
+              <label for="trip-description">{$t("tripForm.description")}</label>
               <textarea
                 id="trip-description"
                 rows="4"
                 bind:value={description}
-                placeholder="Besondere Momente, Highlights, Erinnerungen..."
+                placeholder={$t("tripForm.placeholder.description")}
               ></textarea>
             </div>
           </div>
@@ -285,19 +286,19 @@
                 bind:lat
                 bind:lng
                 color="#e11d48"
-                label="Standort setzen (Reise)"
+                label={$t("tripForm.locationPicker")}
               />
             </div>
           </div>
 
           <div class="row">
             <div class="field">
-              <label for="trip-start">Startdatum</label>
+              <label for="trip-start">{$t("tripForm.start")}</label>
               <input id="trip-start" type="date" bind:value={startDate} required />
             </div>
 
             <div class="field">
-              <label for="trip-end">Enddatum</label>
+              <label for="trip-end">{$t("tripForm.end")}</label>
               <input id="trip-end" type="date" bind:value={endDate} required />
             </div>
           </div>
@@ -309,7 +310,7 @@
               on:click={handleCancel}
               disabled={loading}
             >
-              Abbrechen
+              {$t("tripForm.cancel")}
             </button>
             <button
               type="submit"
@@ -317,9 +318,9 @@
               disabled={loading}
             >
               {#if loading}
-                Speichere...
+                …
               {:else}
-                Reise speichern
+                {$t("tripForm.save")}
               {/if}
             </button>
           </div>

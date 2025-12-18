@@ -4,13 +4,14 @@
   import { onMount, onDestroy } from "svelte";
   import { fade } from "svelte/transition";
   import LocationPicker from "$lib/components/LocationPicker.svelte";
+  import { t } from "$lib/i18n";
 
   let ort = "";
   let ideen = "";
-let file: File | null = null;
-let lat: number | null = null;
-let lng: number | null = null;
-let year = "";
+  let file: File | null = null;
+  let lat: number | null = null;
+  let lng: number | null = null;
+  let year = "";
 
   let loading = false;
   let errorMessage = "";
@@ -75,11 +76,8 @@ let year = "";
     loading = true;
 
     const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError) {
-      console.error(userError);
-    }
-    if (!userData?.user) {
-      errorMessage = "Bitte melde dich erneut an (kein Benutzer gefunden).";
+    if (userError || !userData?.user) {
+      errorMessage = $t("bucketForm.errorAuth");
       loading = false;
       return;
     }
@@ -96,7 +94,7 @@ let year = "";
 
       if (uploadError) {
         console.error(uploadError);
-        errorMessage = "Bild-Upload fehlgeschlagen: " + uploadError.message;
+        errorMessage = `${$t("bucketForm.errorUpload")} ${uploadError.message ?? ""}`.trim();
         loading = false;
         return;
       }
@@ -106,8 +104,8 @@ let year = "";
       imageUrls = imageUrl ? [imageUrl] : [];
     }
 
-    if (!lat || !lng) {
-      errorMessage = "Bitte setze einen Standort auf der Karte.";
+    if (lat == null || lng == null) {
+      errorMessage = $t("bucketForm.errorLocation");
       loading = false;
       return;
     }
@@ -130,7 +128,7 @@ let year = "";
 
     if (insertError) {
       console.error(insertError);
-      errorMessage = insertError.message || "Traumdestination konnte nicht gespeichert werden.";
+      errorMessage = insertError.message || $t("bucketForm.errorSave");
       loading = false;
       return;
     }
@@ -160,7 +158,7 @@ let year = "";
 </script>
 
 <svelte:head>
-  <title>Traumdestination hinzufügen</title>
+  <title>{$t("bucketForm.title")}</title>
 </svelte:head>
 
 <div class="page">
@@ -178,18 +176,20 @@ let year = "";
 
   <div class="hero-overlay">
     <div class="card">
-      <h1>Traumdestination hinzufügen</h1>
+      <h1>{$t("bucketForm.title")}</h1>
 
       {#if errorMessage}
         <p class="error">{errorMessage}</p>
       {/if}
 
       <form on:submit|preventDefault={handleSubmit} class="form">
-        <label for="bl-ort">`n          Ort
-          <input id="bl-ort" type="text" bind:value={ort} required placeholder="z.B. Bora Bora" />
+        <label for="bl-ort">
+          {$t("bucketForm.name")}
+          <input id="bl-ort" type="text" bind:value={ort} required placeholder={$t("bucketForm.placeholder.name")} />
         </label>
 
-        <label for="bl-file">`n          Bilder hochladen
+        <label for="bl-file">
+          {$t("bucketForm.images")}
           <input id="bl-file" type="file" accept="image/*" on:change={handleFileChange} />
         </label>
 
@@ -197,14 +197,16 @@ let year = "";
           bind:lat
           bind:lng
           color="#2563eb"
-          label="Standort setzen (Bucketlist)"
+          label={$t("bucketForm.locationPicker")}
         />
 
-        <label for="bl-ideen">`n          Stichpunkte / Ideen
-          <textarea id="bl-ideen"
+        <label for="bl-ideen">
+          {$t("bucketForm.ideas")}
+          <textarea
+            id="bl-ideen"
             rows="6"
             bind:value={ideen}
-            placeholder="• Must-See Spots&#10;• Restaurants ausprobieren&#10;• Aktivitäten im/am Wasser"
+            placeholder={$t("bucketForm.placeholder.ideas")}
             on:focus={handleBulletsFocus}
             on:keydown={handleBulletsKeydown}
           ></textarea>
@@ -212,13 +214,13 @@ let year = "";
 
         <div class="buttons">
           <button type="button" on:click={handleCancel} disabled={loading}>
-            Abbrechen
+            {$t("bucketForm.cancel")}
           </button>
           <button type="submit" disabled={loading}>
             {#if loading}
-              Speichern...
+              …
             {:else}
-              Traumdestination speichern
+              {$t("bucketForm.save")}
             {/if}
           </button>
         </div>
@@ -345,5 +347,3 @@ let year = "";
     font-weight: 600;
   }
 </style>
-
-

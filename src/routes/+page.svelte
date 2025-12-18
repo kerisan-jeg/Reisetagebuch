@@ -2,12 +2,15 @@
   import { supabase } from "$lib/supabaseClient";
   import { goto } from "$app/navigation";
   import Slideshow from "$lib/components/Slideshow.svelte";
+  import { page } from "$app/stores";
+  import { t } from "$lib/i18n";
 
   let email = "";
   let password = "";
   let errorMessage = "";
   let loading = false;
   let socialLoading: "google" | "" = "";
+  let verifyHint = "";
 
   const redirectTo = import.meta.env?.DEV
     ? "http://localhost:5173/reisetagebuch"
@@ -19,12 +22,17 @@
     "/landing/Strand.jpg"
   ];
 
+  $: verifyHint =
+    $page.url.searchParams.get("verify") === "1"
+      ? `${$t("auth.verifyHint")}${$page.url.searchParams.get("email") ? ` (${ $page.url.searchParams.get("email") })` : ""}`
+      : "";
+
   const handleLogin = async () => {
     errorMessage = "";
     loading = true;
 
     if (!email || !password) {
-      errorMessage = "Bitte alle Felder ausfuellen.";
+      errorMessage = "Bitte alle Felder ausfüllen.";
       loading = false;
       return;
     }
@@ -78,13 +86,13 @@
       });
 
       if (error) {
-        errorMessage = "Google-Login fehlgeschlagen. Bitte spaeter erneut versuchen.";
+        errorMessage = "Google-Login fehlgeschlagen. Bitte später erneut versuchen.";
         socialLoading = "";
       }
       // Bei Erfolg uebernimmt Supabase die Weiterleitung.
     } catch (err) {
       console.error(`${provider} OAuth error:`, err);
-      errorMessage = "Google-Login ist aktuell nicht verfuegbar.";
+      errorMessage = "Google-Login ist aktuell nicht verfügbar.";
       socialLoading = "";
     }
   };
@@ -98,11 +106,8 @@
   <div class="login-content">
     <div class="login-text">
       <p class="eyebrow">Reisetagebuch</p>
-      <h1>Willkommen bei deinem Reisetagebuch</h1>
-      <p class="lead">
-        Halte deine schoensten Erinnerungen fest – privat, uebersichtlich und mit Karte. Teile nur,
-        was du wirklich teilen moechtest.
-      </p>
+      <h1>{$t("auth.loginTitle")}</h1>
+      <p class="lead">{$t("auth.loginSubtitle")}</p>
       <div class="feature-chips">
         <span class="chip">Sichere Speicherung</span>
         <span class="chip">Fotos & Karten</span>
@@ -112,12 +117,16 @@
 
     <div class="login-card">
       <div class="card-header">
-        <h2>Einloggen</h2>
-        <p>Mit E-Mail oder Google anmelden.</p>
+        <h2>{$t("auth.loginTitle")}</h2>
+        <p>{$t("auth.loginSubtitle")}</p>
       </div>
 
       <form on:submit|preventDefault={handleLogin}>
-        <label for="email">E-Mail</label>
+        {#if verifyHint}
+          <div class="notice">{verifyHint}</div>
+        {/if}
+
+        <label for="email">{$t("auth.email")}</label>
         <input
           id="email"
           type="email"
@@ -126,7 +135,7 @@
           required
         />
 
-        <label for="password">Passwort</label>
+        <label for="password">{$t("auth.password")}</label>
         <input
           id="password"
           type="password"
@@ -140,12 +149,12 @@
         {/if}
 
         <button type="submit" class="primary" disabled={loading}>
-          {loading ? "Melde an..." : "Login"}
+          {loading ? "…" : $t("auth.loginButton")}
         </button>
       </form>
 
       <div class="divider">
-        <span>oder</span>
+        <span>{$t("auth.or")}</span>
       </div>
 
       <div class="social-actions">
@@ -174,13 +183,13 @@
               />
             </svg>
           </span>
-          {socialLoading === "google" ? "Weiter zu Google..." : "Mit Google anmelden"}
+          {socialLoading === "google" ? "Weiter zu Google..." : $t("auth.google")}
         </button>
       </div>
 
       <p class="register-text">
-        Noch kein Konto?
-        <a href="/register">Jetzt registrieren</a>
+        {$t("auth.noAccount")}
+        <a href="/register">{$t("auth.registerNow")}</a>
       </p>
     </div>
   </div>
@@ -401,6 +410,17 @@
     color: #dc2626;
     font-weight: 700;
     margin-top: 0.1rem;
+    font-size: 0.95rem;
+  }
+
+  .notice {
+    margin: 0.2rem 0 0.6rem;
+    background: #ecfeff;
+    color: #0f172a;
+    border: 1px solid #bae6fd;
+    border-radius: 10px;
+    padding: 0.65rem 0.75rem;
+    font-weight: 700;
     font-size: 0.95rem;
   }
 

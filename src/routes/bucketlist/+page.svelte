@@ -1,6 +1,7 @@
 <script lang="ts">
   import { supabase } from "$lib/supabaseClient";
   import { onMount, onDestroy } from "svelte";
+  import { t } from "$lib/i18n";
 
   type BucketItem = {
     id: string;
@@ -43,10 +44,7 @@
       error: userError
     } = await supabase.auth.getUser();
 
-    console.log("Bucketlist: aktueller User:", user);
-
     if (userError || !user) {
-      console.error("Kein Benutzer:", userError);
       errorMessage = "Bitte melde dich neu an.";
       loading = false;
       return;
@@ -55,13 +53,11 @@
     const { data, error } = await supabase
       .from("bucketlist")
       .select("*")
+      .eq("user_id", user.id)
       .order("title", { ascending: true });
 
-    console.log("Bucketlist: Supabase-Antwort:", { data, error });
-
     if (error) {
-      console.error("Fehler beim Laden der Bucketlist:", error);
-      errorMessage = "Bucketlist konnte nicht geladen werden.";
+      errorMessage = $t("bucket.error");
     } else if (data) {
       items = data as BucketItem[];
     }
@@ -73,6 +69,68 @@
     if (bgInterval) clearInterval(bgInterval);
   });
 </script>
+
+<div class="background-container">
+  {#each fallbackSlides as slide, i}
+    <div
+      class="bg-slide {i === currentBackground ? 'active' : ''}"
+      style={`background-image: url('${slide}');`}
+    ></div>
+  {/each}
+</div>
+<div class="overlay"></div>
+
+<div class="page-layer">
+  <div class="header-row">
+    <h1>{$t("bucket.title")}</h1>
+
+    <a class="new-item-button" href="/bucketlist/neu">
+      {$t("bucket.cta")}
+    </a>
+  </div>
+
+  {#if errorMessage}
+    <p class="error">{errorMessage}</p>
+  {/if}
+
+  {#if loading}
+    <p class="loading">{$t("bucket.loading")}</p>
+  {:else if items.length > 0}
+    <div class="items-list">
+      {#each items as item}
+        <article class="item-card">
+          <a class="card-action" href={`/bucketlist/${item.id}`} aria-label="Details öffnen">
+            <span>→</span>
+          </a>
+          <div class="item-image">
+            {#if item.cover_image_url}
+              <img src={item.cover_image_url} alt={item.title} />
+            {:else}
+              <div class="item-image-placeholder">Kein Bild</div>
+            {/if}
+          </div>
+          <div class="item-body">
+            <h2 class="item-title">{item.title}</h2>
+            <p class="item-dates">
+              {$t("bucket.itemYear").replace("{year}", item.year ?? "-")}
+            </p>
+            <p class="item-location">{item.location}</p>
+
+            <div class="item-actions">
+              <a class="details-button" href={`/bucketlist/${item.id}`}>
+                Mehr anzeigen
+              </a>
+            </div>
+          </div>
+        </article>
+      {/each}
+    </div>
+  {:else}
+    <p class="no-items">
+      {$t("bucket.empty")}
+    </p>
+  {/if}
+</div>
 
 <style>
   .background-container {
@@ -254,65 +312,3 @@
     }
   }
 </style>
-
-<div class="background-container">
-  {#each fallbackSlides as slide, i}
-    <div
-      class="bg-slide {i === currentBackground ? 'active' : ''}"
-      style={`background-image: url('${slide}');`}
-    ></div>
-  {/each}
-</div>
-<div class="overlay"></div>
-
-<div class="page-layer">
-  <div class="header-row">
-    <h1>Meine Bucketlist</h1>
-
-    <a class="new-item-button" href="/bucketlist/neu">
-      Traumdestination hinzufügen
-    </a>
-  </div>
-
-  {#if errorMessage}
-    <p class="error">{errorMessage}</p>
-  {/if}
-
-  {#if loading}
-    <p class="loading">Bucketlist wird geladen...</p>
-  {:else if items.length > 0}
-    <div class="items-list">
-      {#each items as item}
-        <article class="item-card">
-          <a class="card-action" href={`/bucketlist/${item.id}`} aria-label="Details öffnen">
-            <span>⋯</span>
-          </a>
-          <div class="item-image">
-            {#if item.cover_image_url}
-              <img src={item.cover_image_url} alt={item.title} />
-            {:else}
-              <div class="item-image-placeholder">Kein Bild</div>
-            {/if}
-          </div>
-          <div class="item-body">
-            <h2 class="item-title">{item.title}</h2>
-            <p class="item-dates">
-              Voraussichtlich: {item.year ?? "�"}
-            </p>
-            <p class="item-location">{item.location}</p>
-
-            <div class="item-actions">
-              <a class="details-button" href={`/bucketlist/${item.id}`}>
-                Mehr anzeigen
-              </a>
-            </div>
-          </div>
-        </article>
-      {/each}
-    </div>
-  {:else}
-    <p class="no-items">
-      Keine Bucketlist vorhanden. Lege oben eine Traumdestination an.
-    </p>
-  {/if}
-</div>

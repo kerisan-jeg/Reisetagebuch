@@ -290,20 +290,44 @@
         bucketRes.error?.message?.toLowerCase().includes("column") ||
         bucketRes.error?.message?.toLowerCase().includes("permission");
 
-      // Wenn user_id Spalte Probleme macht, ohne Filter laden; sonst erneut mit Filter
-      const fallback = needsUserIdFallback
+      // Supabase-Fallback
+      const supaFallback = needsUserIdFallback
         ? await supabase.from("bucketlist").select("id,title,location,year,cover_image_url,lat,lng,images")
         : await supabase
             .from("bucketlist")
             .select("id,title,location,year,cover_image_url,lat,lng,images")
             .eq("user_id", user.id);
 
-      if (fallback.error) {
-        bucketFailed = true;
-        bucketError = "Bucketlist konnte nicht geladen werden.";
+      if (supaFallback.error) {
+        // Mongo-API-Fallback
+        try {
+          const res = await fetch(`/api/bucketlist?user_id=${encodeURIComponent(user.id)}`);
+          const payload = await res.json();
+          if (res.ok && payload?.ok) {
+            (payload.bucketlist ?? []).forEach((b: any) =>
+              collected.push({
+                id: b.id,
+                title: b.title,
+                location: b.location,
+                lat: b.lat ?? null,
+                lng: b.lng ?? null,
+                cover_image_url: b.cover_image_url ?? null,
+                images: b.images ?? null,
+                source: "bucketlist"
+              })
+            );
+            bucketError = "";
+          } else {
+            bucketFailed = true;
+            bucketError = payload?.error || "Bucketlist konnte nicht geladen werden.";
+          }
+        } catch (err) {
+          bucketFailed = true;
+          bucketError = err instanceof Error ? err.message : "Bucketlist konnte nicht geladen werden.";
+        }
       } else {
         bucketError = "";
-        (fallback.data ?? []).forEach((b: any) =>
+        (supaFallback.data ?? []).forEach((b: any) =>
           collected.push({
             id: b.id,
             title: b.title,
