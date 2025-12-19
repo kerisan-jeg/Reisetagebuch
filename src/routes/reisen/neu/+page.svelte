@@ -31,6 +31,17 @@
   let heroIndex = 0;
   let heroInterval: ReturnType<typeof setInterval> | null = null;
 
+  const todayIso = () => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  };
+
+  const parseDate = (val: string) => {
+    const d = new Date(val);
+    return Number.isNaN(d.getTime()) ? null : d;
+  };
+
   onMount(() => {
     if (heroImages.length > 1) {
       heroInterval = setInterval(() => {
@@ -74,42 +85,33 @@
 
       const cost =
         String(costString).trim() === "" ? null : Number(costString);
+      const ratingInput = String(ratingString).trim();
+      const ratingRaw = ratingInput === "" ? null : parseFloat(ratingInput);
       const rating =
-        String(ratingString).trim() === "" ? null : Number(ratingString);
+        ratingRaw === null || Number.isNaN(ratingRaw) ? null : Math.round(ratingRaw * 10);
+
+      const start = parseDate(startDate);
+      const end = parseDate(endDate);
+      const today = todayIso();
+
+      if (!start || !end) {
+        throw new Error("Bitte Start- und Enddatum setzen.");
+      }
+      if (start > today || end > today) {
+        throw new Error("Reisedaten dürfen nicht in der Zukunft liegen.");
+      }
+      if (start > end) {
+        throw new Error("Startdatum darf nicht nach dem Enddatum liegen.");
+      }
 
       if (lat == null || lng == null) {
         throw new Error($t("tripForm.errorLocation"));
       }
 
-      // 1) Reise speichern (Tabelle: reisen)
-      const { data: tripData, error: tripError } = await supabase
-        .from("reisen")
-        .insert({
-          user_id: user.id,
-          title,
-          location,
-          with_whom: withWhom || null,
-          cost,
-          rating,
-          description: description || null,
-          start_date: startDate || null,
-          end_date: endDate || null,
-          lat,
-          lng
-        })
-        .select()
-        .single();
+      const tripId = crypto.randomUUID();
 
-      if (tripError || !tripData) {
-        console.error(tripError);
-        throw new Error($t("tripForm.errorSave"));
-      }
-
-      const tripId: string = tripData.id;
-
-      // 2) Bilder hochladen
+      // Falls Bilder vorhanden: zuerst hochladen, damit wir cover_image_url schon beim Insert mitgeben können
       let imageUrls: string[] = [];
-
       if (imagesFiles && imagesFiles.length > 0) {
         const bucket = "uploads";
         for (const file of Array.from(imagesFiles)) {
@@ -128,14 +130,31 @@
 
           imageUrls.push(publicUrl);
         }
+      }
 
-        // 3) Bild-URLs in der Reise speichern
-        const { error: updateError } = await supabase.from("reisen").update({ images: imageUrls }).eq("id", tripId);
+      // Reise speichern (Tabelle: reisen)
+      const { error: tripError } = await supabase
+        .from("reisen")
+        .insert({
+          id: tripId,
+          user_id: user.id,
+          title,
+          location,
+          with_whom: withWhom || null,
+          cost,
+          rating,
+          description: description || null,
+          start_date: startDate || null,
+          end_date: endDate || null,
+          lat,
+          lng,
+          images: imageUrls,
+          cover_image_url: imageUrls[0] ?? null
+        });
 
-        if (updateError) {
-          console.error(updateError);
-          throw new Error($t("tripForm.errorSave"));
-        }
+      if (tripError) {
+        console.error(tripError);
+        throw new Error(tripError.message || $t("tripForm.errorSave"));
       }
 
       const mongoRes = await fetch("/api/reisen", {
@@ -249,6 +268,7 @@
                 type="number"
                 min="1"
                 max="10"
+                step="0.1"
                 bind:value={ratingString}
                 placeholder={$t("tripForm.placeholder.rating")}
               />

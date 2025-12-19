@@ -11,7 +11,8 @@
   let file: File | null = null;
   let lat: number | null = null;
   let lng: number | null = null;
-  let year = "";
+  // Jahr wird optional genutzt; wenn nicht vorhanden, einfach leer lassen
+  let year: string | null = null; // bewusst nicht gespeichert, falls Spalte fehlt
 
   let loading = false;
   let errorMessage = "";
@@ -117,7 +118,6 @@
         title: ort,
         location: ort,
         description: ideen,
-        year: year || null,
         cover_image_url: imageUrl,
         images: imageUrls,
         lat,
@@ -144,8 +144,7 @@
           item_id: itemId,
           title: ort,
           location: ort,
-          images: imageUrls,
-          year: year || null
+          images: imageUrls
         })
       });
     } catch (logErr) {

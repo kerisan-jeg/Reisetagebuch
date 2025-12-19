@@ -83,6 +83,26 @@
 
     if (!tripsError && tripsData) {
       trips = tripsData as Trip[];
+      // Falls Bilder/cover fehlen, versuche mit Mongo-Daten anzureichern
+      try {
+        const res = await fetch(`/api/reisen?user_id=${encodeURIComponent(user.id)}`);
+        const payload = await res.json();
+        if (res.ok && payload?.ok) {
+          const apiTrips = (payload.trips ?? []) as Trip[];
+          const byId = Object.fromEntries(apiTrips.map((t) => [t.id, t]));
+          trips = trips.map((t) => {
+            const fallback = byId[t.id];
+            if (!fallback) return t;
+            return {
+              ...t,
+              cover_image_url: t.cover_image_url ?? fallback.cover_image_url ?? fallback.images?.[0] ?? null,
+              images: t.images ?? fallback.images ?? null
+            };
+          });
+        }
+      } catch {
+        // wenn der Fallback fehlschlägt, ignoriere und nutze Supabase-Daten
+      }
       tripsLoaded = true;
     } else {
       console.error("Supabase Reisen Fehler, versuche Fallback /api/reisen:", tripsError);
@@ -245,7 +265,7 @@
                   >
                     <div
                       class="thumb"
-                      style={`background-image:url('${trip.images?.[0] ?? "/landing/Berg.jpg"}')`}
+                      style={`background-image:url('${trip.cover_image_url ?? trip.images?.[0] ?? "/landing/Berg.jpg"}')`}
                       aria-hidden="true"
                     ></div>
                     <div class="body">
