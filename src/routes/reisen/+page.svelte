@@ -1,4 +1,4 @@
-<script lang="ts">
+﻿<script lang="ts">
   import { supabase } from "$lib/supabaseClient";
   import { onMount } from "svelte";
   import { t } from "$lib/i18n";
@@ -24,6 +24,9 @@
 
   let trips: Trip[] = [];
   let loading = true;
+  let menuOpenId: string | null = null;
+  let deletingId: string | null = null;
+  let currentUserId: string | null = null;
 
   function formatDate(iso?: string | null) {
     if (!iso) return "-";
@@ -53,6 +56,8 @@
       return;
     }
 
+    currentUserId = user.id;
+
     try {
       const res = await fetch(`/api/reisen?user_id=${encodeURIComponent(user.id)}`);
       const payload = await res.json();
@@ -63,7 +68,7 @@
         trips = (payload.trips ?? []) as Trip[];
       }
     } catch (err) {
-      console.error("Fehler beim Laden der Reisen:", err);
+      console.error("Fehler beim Loeschen:", err);
     }
 
     loading = false;
@@ -72,6 +77,44 @@
       if (bgInterval) clearInterval(bgInterval);
     };
   });
+
+  function toggleMenu(id: string) {
+    menuOpenId = menuOpenId === id ? null : id;
+  }
+
+  async function confirmDelete(id: string, title: string) {
+    if (!currentUserId) {
+      alert("Kein Benutzer angemeldet.");
+      return;
+    }
+
+    const wantsDelete = confirm(`Moechtest du "${title}" dauerhaft loeschen?`);
+    if (!wantsDelete) return;
+
+    deletingId = id;
+
+    try {
+      const res = await fetch(`/api/reisen/${id}?user_id=${encodeURIComponent(currentUserId)}`, {
+        method: "DELETE"
+      });
+      const payload = await res.json();
+
+      if (!res.ok || !payload?.ok) {
+        console.error("Loeschen fehlgeschlagen:", payload?.error || res.statusText);
+        alert(payload?.error || "Loeschen fehlgeschlagen.");
+        return;
+      }
+
+      trips = trips.filter((trip) => trip.id !== id);
+      menuOpenId = null;
+    } catch (err) {
+      console.error("Fehler beim Loeschen:", err);
+      alert("Loeschen fehlgeschlagen.");
+    } finally {
+      deletingId = null;
+    }
+  }
+
 </script>
 
 <style>
@@ -154,33 +197,75 @@
     max-width: 920px;
   }
 
-  .trip-card {
-    width: 100%;
-    border-radius: 26px;
-    background: #ffffff;
-    color: #111827;
-    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.4);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    position: relative;
-  }
+.trip-card {
+  width: 100%;
+  border-radius: 26px;
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
 
-  .card-action {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.65);
-    color: #fff;
-    display: grid;
-    place-items: center;
-    text-decoration: none;
-    font-size: 1.1rem;
-    z-index: 2;
-  }
+.card-action {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.menu-trigger {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+
+.action-menu {
+  min-width: 170px;
+  background: #0f172a;
+  color: #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: inherit;
+  text-decoration: none;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.menu-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.menu-item.destructive {
+  color: #fecdd3;
+}
 
   .trip-image {
     height: 200px;
@@ -278,9 +363,30 @@
     <div class="trips-list">
       {#each trips as trip}
         <article class="trip-card">
-          <a class="card-action" href={`/reisen/${trip.id}`} aria-label="Details öffnen">
-            <span>⋯</span>
-          </a>
+          <div class="card-action">
+            <button
+              class="menu-trigger"
+              aria-label="Aktionen oeffnen"
+              on:click={() => toggleMenu(trip.id)}
+            >
+              ...
+            </button>
+
+            {#if menuOpenId === trip.id}
+              <div class="action-menu">
+                <a class="menu-item" href={`/reisen/${trip.id}`}>
+                  Mehr anzeigen
+                </a>
+                <button
+                  class="menu-item destructive"
+                  on:click={() => confirmDelete(trip.id, trip.title)}
+                  disabled={deletingId === trip.id}
+                >
+                  {deletingId === trip.id ? "Loesche..." : "Loeschen"}
+                </button>
+              </div>
+            {/if}
+          </div>
           <div class="trip-image">
             {#if trip.cover_image_url || trip.images?.[0]}
               <img src={trip.cover_image_url || trip.images?.[0]} alt={trip.title} />

@@ -23,3 +23,23 @@ export const GET: RequestHandler = async ({ params, url }) => {
 
   return json({ ok: true, trip: mapReiseDoc(doc) });
 };
+
+export const DELETE: RequestHandler = async ({ params, url }) => {
+  if (!MONGODB_URI) {
+    return json({ ok: false, error: "mongo disabled (MONGODB_URI missing)" }, { status: 503 });
+  }
+
+  const userId = url.searchParams.get("user_id")?.trim();
+  if (!userId) {
+    return json({ ok: false, error: "user_id ist erforderlich" }, { status: 400 });
+  }
+
+  const db = await getDb();
+  const result = await db.collection<ReiseDoc>("reisen").deleteOne({ _id: params.id, user_id: userId });
+
+  if (result.deletedCount === 0) {
+    return json({ ok: false, error: "Reise nicht gefunden oder keine Berechtigung" }, { status: 404 });
+  }
+
+  return json({ ok: true, deleted: params.id });
+};
