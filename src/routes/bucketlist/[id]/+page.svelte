@@ -1,183 +1,275 @@
 <script lang="ts">
   import { onMount } from "svelte";
+  import { goto } from "$app/navigation";
   import { supabase } from "$lib/supabaseClient";
-  import { page } from "$app/stores";
-  import { get } from "svelte/store";
 
   type BucketItem = {
     id: string;
     title: string;
     location: string | null;
-    description: string | null;
-    cover_image_url: string | null;
-    images: string[] | null;
+    description?: string | null;
+    year?: string | null;
+    cover_image_url?: string | null;
+    images?: string[] | null;
+    lat?: number | null;
+    lng?: number | null;
   };
+
+  export let params: { id: string };
 
   let item: BucketItem | null = null;
   let loading = true;
   let errorMessage = "";
-  let currentIndex = 0;
+  let deleting = false;
+  let heroImages: string[] = [];
+  let heroIndex = 0;
+  let intervalId: ReturnType<typeof setInterval> | null = null;
 
   onMount(async () => {
-    const id = get(page).params.id;
+    await loadItem();
+    startHero();
+  });
 
-    const {
-      data: { user },
-      error: userError
-    } = await supabase.auth.getUser();
+  async function loadItem() {
+    loading = true;
+    errorMessage = "";
 
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    const user = userData?.user;
     if (userError || !user) {
       errorMessage = "Bitte neu einloggen.";
       loading = false;
       return;
     }
 
-    const { data, error } = await supabase
+    // Erst normal über user_id versuchen
+    let { data, error } = await supabase
       .from("bucketlist")
       .select("*")
-      .eq("id", id)
+      .eq("id", params.id)
+      .eq("user_id", user.id)
       .single();
 
+    // Fallback mit userId-Spalte
     if (error || !data) {
-      errorMessage = "Eintrag konnte nicht geladen werden.";
+      const alt = await supabase
+        .from("bucketlist")
+        .select("*")
+        .eq("id", params.id)
+        .eq("userId", user.id)
+        .maybeSingle();
+      data = alt.data ?? null;
+      error = alt.error ?? error;
+    }
+
+    // Letzter Versuch: ungefiltert und selbst filtern
+    if ((!data || error) && !loading) {
+      const unfilt = await supabase.from("bucketlist").select("*").eq("id", params.id).maybeSingle();
+      if (unfilt.data && (!unfilt.data.user_id || unfilt.data.user_id === user.id || unfilt.data.userId === user.id)) {
+        data = unfilt.data;
+        error = null;
+      }
+    }
+
+    if (!data || error) {
+      errorMessage = "Bucketlist-Eintrag konnte nicht geladen werden.";
       loading = false;
       return;
     }
 
     item = data as BucketItem;
+    heroImages = (item.images ?? []).filter(Boolean) as string[];
+    if (item.cover_image_url) {
+      heroImages = [item.cover_image_url, ...heroImages];
+    }
+    if (heroImages.length === 0) {
+      heroImages = ["/landing/Strand.jpg"];
+    }
     loading = false;
-  });
+  }
 
-  const nextImage = () => {
-    if (!item?.images?.length) return;
-    currentIndex = (currentIndex + 1) % item.images.length;
-  };
+  function startHero() {
+    if (intervalId) clearInterval(intervalId);
+    if (heroImages.length <= 1) return;
+    intervalId = setInterval(() => {
+      heroIndex = (heroIndex + 1) % heroImages.length;
+    }, 6000);
+  }
 
-  const prevImage = () => {
-    if (!item?.images?.length) return;
-    currentIndex = (currentIndex - 1 + item.images.length) % item.images.length;
-  };
+  async function deleteItem() {
+    if (!item || deleting) return;
+    if (!confirm("Eintrag wirklich löschen?")) return;
+    deleting = true;
+    const { error } = await supabase.from("bucketlist").delete().eq("id", item.id);
+    deleting = false;
+    if (error) {
+      errorMessage = "Löschen fehlgeschlagen.";
+    } else {
+      await goto("/bucketlist", { replaceState: true });
+    }
+  }
 </script>
 
 <svelte:head>
-  <title>{item ? item.title : "Bucketlist Eintrag"}</title>
+  <title>{item?.title ?? "Bucketlist"}</title>
 </svelte:head>
 
 {#if loading}
-  <p class="status">Lädt...</p>
+  <div class="status">Lade Bucketlist...</div>
 {:else if errorMessage}
-  <p class="status error">{errorMessage}</p>
+  <div class="status error">{errorMessage}</div>
 {:else if item}
   <div class="page">
-    <div class="gallery">
-      {#if item.images?.length}
-        <button class="nav-btn" on:click={prevImage} aria-label="Vorheriges Bild">‹</button>
-        <img src={item.images[currentIndex]} alt={item.title} />
-        <button class="nav-btn" on:click={nextImage} aria-label="Nächstes Bild">›</button>
-        <p class="counter">{currentIndex + 1} / {item.images.length}</p>
-      {:else if item.cover_image_url}
-        <img src={item.cover_image_url} alt={item.title} />
-      {:else}
-        <div class="placeholder">Kein Bild</div>
-      {/if}
-    </div>
+    <section class="hero">
+      {#key heroIndex}
+        <div
+          class="hero-bg"
+          style={`background-image:url('${heroImages[heroIndex]}')`}
+        ></div>
+      {/key}
+      <div class="hero-overlay"></div>
+      <div class="hero-content">
+        <p class="eyebrow">Bucketlist</p>
+        <h1>{item.title}</h1>
+        {#if item.location}<p class="lede">{item.location}</p>{/if}
+      </div>
+    </section>
 
-    <div class="details">
-      <h1>{item.title}</h1>
-      {#if item.location}<p class="meta"><strong>Ort:</strong> {item.location}</p>{/if}
+    <main class="content">
+      <div class="meta">
+        {#if item.year}<p><strong>Jahr:</strong> {item.year}</p>{/if}
+        {#if item.lat && item.lng}<p><strong>Koordinaten:</strong> {item.lat}, {item.lng}</p>{/if}
+      </div>
+
       {#if item.description}
-        <div class="description">
-          <strong>Beschreibung / Stichpunkte:</strong>
-          <p>{item.description}</p>
+        <div class="card">
+          <h3>Beschreibung / Stichpunkte</h3>
+          <pre>{item.description}</pre>
         </div>
       {/if}
-    </div>
+
+      <div class="actions">
+        <button class="secondary" on:click={() => goto("/bucketlist")}>Zurück</button>
+        <button class="danger" on:click={deleteItem} disabled={deleting}>
+          {deleting ? "Lösche..." : "Löschen"}
+        </button>
+      </div>
+    </main>
   </div>
+{:else}
+  <div class="status error">Kein Eintrag gefunden.</div>
 {/if}
 
 <style>
-  .page {
-    display: grid;
-    gap: 1.5rem;
-    padding: 2rem 1.5rem 3rem;
-    max-width: 1100px;
-    margin: 0 auto;
-  }
-
   .status {
-    padding: 2rem;
+    padding: 1rem;
     text-align: center;
   }
-
   .status.error {
     color: #b91c1c;
   }
 
-  .gallery {
+  .page {
+    min-height: 100vh;
+    background: #0b1224;
+    color: #e5e7eb;
+  }
+
+  .hero {
     position: relative;
-    border-radius: 20px;
+    min-height: 40vh;
+    display: grid;
+    place-items: center;
     overflow: hidden;
-    background: #f3f4f6;
-    min-height: 320px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
   }
-
-  .gallery img {
-    width: 100%;
-    max-height: 520px;
-    object-fit: cover;
-    display: block;
-  }
-
-  .placeholder {
-    padding: 2rem;
-    color: #6b7280;
-  }
-
-  .nav-btn {
+  .hero-bg {
     position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    filter: brightness(0.75);
+    transform: scale(1.04);
+  }
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(7, 10, 18, 0.3), rgba(7, 10, 18, 0.7));
+  }
+  .hero-content {
+    position: relative;
+    text-align: center;
+    padding: 2rem 1rem;
+    text-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  }
+  .eyebrow {
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin: 0 0 0.4rem;
+    color: #cbd5e1;
+  }
+  h1 {
+    margin: 0;
+    font-size: clamp(2rem, 4vw, 3rem);
+    color: #fff;
+  }
+  .lede {
+    margin: 0.3rem 0 0;
+    color: #e2e8f0;
+  }
+
+  .content {
+    max-width: 900px;
+    margin: -40px auto 0;
+    padding: 1.5rem;
+  }
+  .card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 1.2rem 1.4rem;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.25);
+  }
+  pre {
+    white-space: pre-wrap;
+    font-family: inherit;
+    margin: 0.6rem 0 0;
+    color: #e5e7eb;
+  }
+  .meta {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+    color: #cbd5e1;
+  }
+  .meta strong {
+    color: #f8fafc;
+  }
+  .actions {
+    display: flex;
+    gap: 0.8rem;
+    margin-top: 1rem;
+    justify-content: flex-end;
+  }
+  .secondary,
+  .danger {
     border: none;
-    background: rgba(0, 0, 0, 0.6);
-    color: white;
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
+    border-radius: 12px;
+    padding: 0.75rem 1.2rem;
+    font-weight: 700;
     cursor: pointer;
   }
-
-  .nav-btn:first-of-type {
-    left: 12px;
+  .secondary {
+    background: rgba(255, 255, 255, 0.08);
+    color: #e5e7eb;
+    border: 1px solid rgba(255, 255, 255, 0.12);
   }
-
-  .nav-btn:last-of-type {
-    right: 12px;
+  .danger {
+    background: #ef4444;
+    color: #fff;
   }
-
-  .counter {
-    position: absolute;
-    bottom: 10px;
-    right: 14px;
-    background: rgba(0, 0, 0, 0.6);
-    color: white;
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 0.9rem;
-  }
-
-  .details h1 {
-    margin: 0 0 0.5rem;
-  }
-
-  .meta {
-    margin: 0.3rem 0;
-  }
-
-  .description {
-    margin-top: 1rem;
-    line-height: 1.4;
+  .danger:disabled {
+    opacity: 0.6;
+    cursor: default;
   }
 </style>

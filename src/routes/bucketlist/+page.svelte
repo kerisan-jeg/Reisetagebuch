@@ -25,6 +25,8 @@
   let items: BucketItem[] = [];
   let loading = true;
   let errorMessage = "";
+  let deletingId: string | null = null;
+  let openMenuId: string | null = null;
 
   function nextBackground() {
     currentBackground = (currentBackground + 1) % fallbackSlides.length;
@@ -65,6 +67,20 @@
     loading = false;
   }
 
+  async function deleteItem(id: string) {
+    if (deletingId) return;
+    deletingId = id;
+    errorMessage = "";
+    const { error } = await supabase.from("bucketlist").delete().eq("id", id);
+    if (error) {
+      errorMessage = "Bucketlist-Eintrag konnte nicht gelÃ¶scht werden.";
+    } else {
+      items = items.filter((i) => i.id !== id);
+    }
+    deletingId = null;
+    openMenuId = null;
+  }
+
   onDestroy(() => {
     if (bgInterval) clearInterval(bgInterval);
   });
@@ -99,10 +115,30 @@
     <div class="items-list">
       {#each items as item}
         <article class="item-card">
-          <a class="card-action" href={`/bucketlist/${item.id}`} aria-label="Details öffnen">
-            <span>→</span>
-          </a>
-          <div class="item-image">
+                    <button
+            class="card-action"
+            type="button"
+            aria-label="Menï¿½ ï¿½ffnen"
+            on:click={() => (openMenuId = openMenuId === item.id ? null : item.id)}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <circle cx="12" cy="5" r="2" fill="currentColor" />
+              <circle cx="12" cy="12" r="2" fill="currentColor" />
+              <circle cx="12" cy="19" r="2" fill="currentColor" />
+            </svg>
+          </button>
+          {#if openMenuId === item.id}
+            <div class="card-menu">
+              <a href={`/bucketlist/${item.id}`}>Mehr anzeigen</a>
+              <button
+                class="menu-danger"
+                on:click={() => deleteItem(item.id)}
+                disabled={deletingId === item.id}
+              >
+                {deletingId === item.id ? "Lï¿½sche..." : "Lï¿½schen"}
+              </button>
+            </div>
+          {/if}<div class="item-image">
             {#if item.cover_image_url}
               <img src={item.cover_image_url} alt={item.title} />
             {:else}
@@ -111,10 +147,12 @@
           </div>
           <div class="item-body">
             <h2 class="item-title">{item.title}</h2>
-            <p class="item-dates">
-              {$t("bucket.itemYear").replace("{year}", item.year ?? "-")}
-            </p>
-            <p class="item-location">{item.location}</p>
+                        {#if item.year}
+              <p class="item-dates">{item.year}</p>
+            {/if}
+            {#if item.location}
+              <p class="item-location">{item.location}</p>
+            {/if}
 
             <div class="item-actions">
               <a class="details-button" href={`/bucketlist/${item.id}`}>
@@ -226,16 +264,17 @@
     position: absolute;
     top: 12px;
     right: 12px;
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: rgba(0, 0, 0, 0.65);
+    width: 38px;
+    height: 38px;
+    border-radius: 14px;
+    background: rgba(5, 9, 20, 0.8);
     color: #fff;
     display: grid;
     place-items: center;
-    text-decoration: none;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    cursor: pointer;
     font-size: 1.1rem;
-    z-index: 2;
+    z-index: 3;
   }
 
   .item-image {
@@ -282,6 +321,43 @@
     justify-content: flex-start;
   }
 
+  .card-menu {
+    position: absolute;
+    top: 56px;
+    right: 12px;
+    background: rgba(6, 10, 20, 0.95);
+    color: #fff;
+    border-radius: 14px;
+    padding: 10px 12px;
+    display: grid;
+    gap: 8px;
+    min-width: 160px;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    z-index: 4;
+  }
+
+  .card-menu a,
+  .card-menu button {
+    text-align: left;
+    background: transparent;
+    border: none;
+    color: #e2e8f0;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 6px 4px;
+    text-decoration: none;
+  }
+
+  .card-menu a:hover,
+  .card-menu button:hover {
+    color: #fff;
+  }
+
+  .card-menu .menu-danger {
+    color: #fca5a5;
+  }
+
   .details-button {
     padding: 8px 18px;
     border-radius: 999px;
@@ -312,3 +388,6 @@
     }
   }
 </style>
+
+
+

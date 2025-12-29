@@ -265,7 +265,7 @@
 
     const [reisenRes, bucketRes] = await Promise.all([
       supabase.from("reisen").select("id,title,location,lat,lng,images,cover_image_url").eq("user_id", user.id),
-      supabase.from("bucketlist").select("id,title,location,lat,lng,images,cover_image_url,year").eq("user_id", user.id)
+      supabase.from("bucketlist").select("id,title,location,lat,lng,images,cover_image_url").eq("user_id", user.id)
     ]);
 
     const collected: TripPoint[] = [];
@@ -284,62 +284,11 @@
       })
     );
 
-    if (bucketRes.error) {
-      const needsUserIdFallback =
-        bucketRes.error?.message?.toLowerCase().includes("user_id") ||
-        bucketRes.error?.message?.toLowerCase().includes("column") ||
-        bucketRes.error?.message?.toLowerCase().includes("permission");
-
-      // Supabase-Fallback
-      const supaFallback = needsUserIdFallback
-        ? await supabase.from("bucketlist").select("id,title,location,year,cover_image_url,lat,lng,images")
-        : await supabase
-            .from("bucketlist")
-            .select("id,title,location,year,cover_image_url,lat,lng,images")
-            .eq("user_id", user.id);
-
-      if (supaFallback.error) {
-        // Mongo-API-Fallback
-        try {
-          const res = await fetch(`/api/bucketlist?user_id=${encodeURIComponent(user.id)}`);
-          const payload = await res.json();
-          if (res.ok && payload?.ok) {
-            (payload.bucketlist ?? []).forEach((b: any) =>
-              collected.push({
-                id: b.id,
-                title: b.title,
-                location: b.location,
-                lat: b.lat ?? null,
-                lng: b.lng ?? null,
-                cover_image_url: b.cover_image_url ?? null,
-                images: b.images ?? null,
-                source: "bucketlist"
-              })
-            );
-            bucketError = "";
-          } else {
-            bucketFailed = true;
-            bucketError = payload?.error || "Bucketlist konnte nicht geladen werden.";
-          }
-        } catch (err) {
-          bucketFailed = true;
-          bucketError = err instanceof Error ? err.message : "Bucketlist konnte nicht geladen werden.";
-        }
-      } else {
-        bucketError = "";
-        (supaFallback.data ?? []).forEach((b: any) =>
-          collected.push({
-            id: b.id,
-            title: b.title,
-            location: b.location,
-            lat: b.lat ?? null,
-            lng: b.lng ?? null,
-            cover_image_url: b.cover_image_url ?? null,
-            images: b.images ?? null,
-            source: "bucketlist"
-          })
-        );
-      }
+    if (bucketRes.error || (bucketRes.data?.length ?? 0) === 0) {
+      const fallbackBuckets = await fetchBucketlistFallback(user.id, bucketRes.error);
+      collected.push(...fallbackBuckets);
+      bucketFailed = fallbackBuckets.length === 0;
+      bucketError = bucketFailed ? "Bucketlist konnte nicht geladen werden." : "";
     } else {
       bucketRes.data?.forEach((b) =>
         collected.push({
@@ -387,6 +336,106 @@
       }));
 
     return { collected, userAvailable: true };
+  }
+
+
+  async function fetchBucketlistFallback(userId: string, initialError?: any) {
+    const items: TripPoint[] = [];
+    const needsUserIdFallback =
+      initialError?.message?.toLowerCase().includes("user_id") ||
+      initialError?.message?.toLowerCase().includes("column") ||
+      initialError?.message?.toLowerCase().includes("permission");
+
+    const supaFallback = needsUserIdFallback
+      ? await supabase.from("bucketlist").select("id,title,location,cover_image_url,lat,lng,images")
+      : await supabase
+          .from("bucketlist")
+          .select("id,title,location,cover_image_url,lat,lng,images")
+          .eq("user_id", userId);
+
+    if (!supaFallback.error && (supaFallback.data?.length ?? 0) > 0) {
+      supaFallback.data.forEach((b: any) =>
+        items.push({
+          id: b.id,
+          title: b.title,
+          location: b.location,
+          lat: b.lat ?? null,
+          lng: b.lng ?? null,
+          cover_image_url: b.cover_image_url ?? null,
+          images: b.images ?? null,
+          source: "bucketlist"
+        })
+      );
+      return items;
+    }
+
+    const altQuery = await supabase
+      .from("bucketlist")
+      .select("id,title,location,cover_image_url,lat,lng,images,userId")
+      .eq("userId", userId);
+
+    if (!altQuery.error && (altQuery.data?.length ?? 0) > 0) {
+      altQuery.data
+        .filter((b: any) => !b.userId || b.userId === userId)
+        .forEach((b: any) =>
+          items.push({
+            id: b.id,
+            title: b.title,
+            location: b.location,
+            lat: b.lat ?? null,
+            lng: b.lng ?? null,
+            cover_image_url: b.cover_image_url ?? null,
+            images: b.images ?? null,
+            source: "bucketlist"
+          })
+        );
+      return items;
+    }
+
+    const unfilt = await supabase
+      .from("bucketlist")
+      .select("id,title,location,cover_image_url,lat,lng,images,userId");
+
+    if (!unfilt.error && (unfilt.data?.length ?? 0) > 0) {
+      unfilt.data
+        .filter((b: any) => !b.userId || b.userId === userId)
+        .forEach((b: any) =>
+          items.push({
+            id: b.id,
+            title: b.title,
+            location: b.location,
+            lat: b.lat ?? null,
+            lng: b.lng ?? null,
+            cover_image_url: b.cover_image_url ?? null,
+            images: b.images ?? null,
+            source: "bucketlist"
+          })
+        );
+      return items;
+    }
+
+    try {
+      const res = await fetch(`/api/bucketlist?user_id=${encodeURIComponent(userId)}`);
+      const payload = await res.json();
+      if (res.ok && payload?.ok) {
+        (payload.bucketlist ?? []).forEach((b: any) =>
+          items.push({
+            id: b.id,
+            title: b.title,
+            location: b.location,
+            lat: b.lat ?? null,
+            lng: b.lng ?? null,
+            cover_image_url: b.cover_image_url ?? null,
+            images: b.images ?? null,
+            source: "bucketlist"
+          })
+        );
+      }
+    } catch (err) {
+      console.error("Bucketlist API Fallback Fehler:", err);
+    }
+
+    return items;
   }
 
   async function buildMaps(collected: TripPoint[]) {
