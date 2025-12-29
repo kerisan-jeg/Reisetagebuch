@@ -1,6 +1,6 @@
 <script lang="ts">
   import { supabase } from "$lib/supabaseClient";
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, tick } from "svelte";
   import { t } from "$lib/i18n";
 
   type BucketItem = {
@@ -27,53 +27,86 @@
   let errorMessage = "";
   let deletingId: string | null = null;
   let openMenuId: string | null = null;
+  let firstMenuItem: HTMLAnchorElement | null = null;
 
   function nextBackground() {
     currentBackground = (currentBackground + 1) % fallbackSlides.length;
   }
 
+  function handleGlobalKeydown(event: KeyboardEvent) {
+    if (event.key === "Escape") {
+      openMenuId = null;
+    }
+  }
+
+  function handleGlobalClick(event: MouseEvent) {
+    if (!openMenuId) return;
+    const target = event.target as HTMLElement | null;
+    if (target && (target.closest(".card-menu") || target.closest(".card-action"))) return;
+    openMenuId = null;
+  }
+
+  function handleMenuBlur(event: FocusEvent) {
+    const related = event.relatedTarget as HTMLElement | null;
+    if (!related || related.closest(".card-menu") || related.closest(".card-action")) return;
+    openMenuId = null;
+  }
+
   onMount(() => {
     bgInterval = setInterval(nextBackground, 6000);
     loadBucketlist();
+    window.addEventListener("keydown", handleGlobalKeydown);
+    window.addEventListener("click", handleGlobalClick);
   });
 
   async function loadBucketlist() {
     loading = true;
     errorMessage = "";
 
-    const {
-      data: { user },
-      error: userError
-    } = await supabase.auth.getUser();
+    try {
+      const {
+        data: { user },
+        error: userError
+      } = await supabase.auth.getUser();
 
-    if (userError || !user) {
-      errorMessage = "Bitte melde dich neu an.";
-      loading = false;
-      return;
-    }
+      if (userError || !user) {
+        errorMessage = $t("bucket.authRequired");
+        return;
+      }
 
-    const { data, error } = await supabase
-      .from("bucketlist")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("title", { ascending: true });
+      const { data, error } = await supabase
+        .from("bucketlist")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("title", { ascending: true });
 
-    if (error) {
+      if (error) {
+        errorMessage = $t("bucket.error");
+      } else if (data) {
+        items = data as BucketItem[];
+      }
+    } catch (err) {
+      console.error("Bucketlist load failed:", err);
       errorMessage = $t("bucket.error");
-    } else if (data) {
-      items = data as BucketItem[];
+    } finally {
+      loading = false;
     }
+  }
 
-    loading = false;
+  $: if (openMenuId) {
+    tick().then(() => {
+      firstMenuItem?.focus();
+    });
   }
 
   async function deleteItem(id: string) {
     if (deletingId) return;
+    if (!confirm($t("bucket.delete.confirm"))) return;
     deletingId = id;
     errorMessage = "";
     const { error } = await supabase.from("bucketlist").delete().eq("id", id);
     if (error) {
-      errorMessage = "Bucketlist-Eintrag konnte nicht gelÃ¶scht werden.";
+      errorMessage = $t("bucket.delete.error");
     } else {
       items = items.filter((i) => i.id !== id);
     }
@@ -83,6 +116,8 @@
 
   onDestroy(() => {
     if (bgInterval) clearInterval(bgInterval);
+    window.removeEventListener("keydown", handleGlobalKeydown);
+    window.removeEventListener("click", handleGlobalClick);
   });
 </script>
 
@@ -106,20 +141,23 @@
   </div>
 
   {#if errorMessage}
-    <p class="error">{errorMessage}</p>
+    <p class="error" role="alert">{errorMessage}</p>
   {/if}
 
   {#if loading}
-    <p class="loading">{$t("bucket.loading")}</p>
+    <p class="loading" role="status" aria-live="polite">{$t("bucket.loading")}</p>
   {:else if items.length > 0}
     <div class="items-list">
       {#each items as item}
         <article class="item-card">
-                    <button
+          <button
             class="card-action"
             type="button"
-            aria-label="Menï¿½ ï¿½ffnen"
+            aria-label="Menue oeffnen"
+            aria-haspopup="true"
+            aria-expanded={openMenuId === item.id}
             on:click={() => (openMenuId = openMenuId === item.id ? null : item.id)}
+            on:blur={handleMenuBlur}
           >
             <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <circle cx="12" cy="5" r="2" fill="currentColor" />
@@ -128,17 +166,25 @@
             </svg>
           </button>
           {#if openMenuId === item.id}
-            <div class="card-menu">
-              <a href={`/bucketlist/${item.id}`}>Mehr anzeigen</a>
+            <div class="card-menu" role="menu" aria-label="Aktionen Bucketlist-Eintrag" on:blur={handleMenuBlur}>
+              <a
+                href={`/bucketlist/${item.id}`}
+                role="menuitem"
+                bind:this={firstMenuItem}
+              >
+                {$t("bucket.menu.more")}
+              </a>
               <button
                 class="menu-danger"
                 on:click={() => deleteItem(item.id)}
                 disabled={deletingId === item.id}
+                role="menuitem"
               >
-                {deletingId === item.id ? "Lï¿½sche..." : "Lï¿½schen"}
+                {deletingId === item.id ? $t("bucket.delete.loading") : $t("bucket.menu.delete")}
               </button>
             </div>
-          {/if}<div class="item-image">
+          {/if}
+          <div class="item-image">
             {#if item.cover_image_url}
               <img src={item.cover_image_url} alt={item.title} />
             {:else}
@@ -147,7 +193,7 @@
           </div>
           <div class="item-body">
             <h2 class="item-title">{item.title}</h2>
-                        {#if item.year}
+            {#if item.year}
               <p class="item-dates">{item.year}</p>
             {/if}
             {#if item.location}
@@ -388,6 +434,3 @@
     }
   }
 </style>
-
-
-

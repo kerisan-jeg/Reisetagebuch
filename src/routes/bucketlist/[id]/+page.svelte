@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, onDestroy } from "svelte";
+  import { t } from "$lib/i18n";
   import { goto } from "$app/navigation";
   import { supabase } from "$lib/supabaseClient";
 
@@ -25,67 +26,57 @@
   let heroIndex = 0;
   let intervalId: ReturnType<typeof setInterval> | null = null;
 
-  onMount(async () => {
-    await loadItem();
-    startHero();
-  });
-
   async function loadItem() {
     loading = true;
     errorMessage = "";
 
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    const user = userData?.user;
-    if (userError || !user) {
-      errorMessage = "Bitte neu einloggen.";
-      loading = false;
-      return;
-    }
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      const user = userData?.user;
+      if (userError || !user) {
+        errorMessage = $t("bucket.authRequired");
+        return;
+      }
 
-    // Erst normal über user_id versuchen
-    let { data, error } = await supabase
-      .from("bucketlist")
-      .select("*")
-      .eq("id", params.id)
-      .eq("user_id", user.id)
-      .single();
-
-    // Fallback mit userId-Spalte
-    if (error || !data) {
-      const alt = await supabase
+      // Erst normal ueber user_id versuchen
+      let { data, error } = await supabase
         .from("bucketlist")
         .select("*")
         .eq("id", params.id)
-        .eq("userId", user.id)
-        .maybeSingle();
-      data = alt.data ?? null;
-      error = alt.error ?? error;
-    }
+        .eq("user_id", user.id)
+        .single();
 
-    // Letzter Versuch: ungefiltert und selbst filtern
-    if ((!data || error) && !loading) {
-      const unfilt = await supabase.from("bucketlist").select("*").eq("id", params.id).maybeSingle();
-      if (unfilt.data && (!unfilt.data.user_id || unfilt.data.user_id === user.id || unfilt.data.userId === user.id)) {
-        data = unfilt.data;
-        error = null;
+      // Fallback mit userId-Spalte
+      if (error || !data) {
+        const alt = await supabase
+          .from("bucketlist")
+          .select("*")
+          .eq("id", params.id)
+          .eq("userId", user.id)
+          .maybeSingle();
+        data = alt.data ?? null;
+        error = alt.error ?? error;
       }
-    }
 
-    if (!data || error) {
-      errorMessage = "Bucketlist-Eintrag konnte nicht geladen werden.";
+      if (!data || error) {
+        errorMessage = $t("bucket.error");
+        return;
+      }
+
+      item = data as BucketItem;
+      heroImages = (item.images ?? []).filter(Boolean) as string[];
+      if (item.cover_image_url) {
+        heroImages = [item.cover_image_url, ...heroImages];
+      }
+      if (heroImages.length === 0) {
+        heroImages = ["/landing/Strand.jpg"];
+      }
+    } catch (err) {
+      console.error("Bucketlist item load failed:", err);
+      errorMessage = $t("bucket.error");
+    } finally {
       loading = false;
-      return;
     }
-
-    item = data as BucketItem;
-    heroImages = (item.images ?? []).filter(Boolean) as string[];
-    if (item.cover_image_url) {
-      heroImages = [item.cover_image_url, ...heroImages];
-    }
-    if (heroImages.length === 0) {
-      heroImages = ["/landing/Strand.jpg"];
-    }
-    loading = false;
   }
 
   function startHero() {
@@ -98,16 +89,26 @@
 
   async function deleteItem() {
     if (!item || deleting) return;
-    if (!confirm("Eintrag wirklich löschen?")) return;
+    if (!confirm($t("bucket.delete.confirm"))) return;
     deleting = true;
     const { error } = await supabase.from("bucketlist").delete().eq("id", item.id);
     deleting = false;
     if (error) {
-      errorMessage = "Löschen fehlgeschlagen.";
+      errorMessage = $t("bucket.delete.error");
     } else {
       await goto("/bucketlist", { replaceState: true });
     }
   }
+
+  onMount(async () => {
+    await loadItem();
+  });
+
+  $: startHero();
+
+  onDestroy(() => {
+    if (intervalId) clearInterval(intervalId);
+  });
 </script>
 
 <svelte:head>
@@ -115,9 +116,14 @@
 </svelte:head>
 
 {#if loading}
-  <div class="status">Lade Bucketlist...</div>
+  <div class="status" role="status" aria-live="polite">Lade Bucketlist...</div>
 {:else if errorMessage}
-  <div class="status error">{errorMessage}</div>
+  <div class="status error" role="alert">
+    {errorMessage}
+    <div class="status-actions">
+      <button class="secondary" on:click={() => goto("/bucketlist")}>Zurueck</button>
+    </div>
+  </div>
 {:else if item}
   <div class="page">
     <section class="hero">
@@ -149,10 +155,10 @@
       {/if}
 
       <div class="actions">
-        <button class="secondary" on:click={() => goto("/bucketlist")}>Zurück</button>
-        <button class="danger" on:click={deleteItem} disabled={deleting}>
-          {deleting ? "Lösche..." : "Löschen"}
-        </button>
+      <button class="secondary" on:click={() => goto("/bucketlist")}>{$t("bucket.back")}</button>
+      <button class="danger" on:click={deleteItem} disabled={deleting}>
+        {deleting ? $t("bucket.delete.loading") : $t("bucket.menu.delete")}
+      </button>
       </div>
     </main>
   </div>
@@ -167,6 +173,11 @@
   }
   .status.error {
     color: #b91c1c;
+  }
+  .status-actions {
+    margin-top: 0.5rem;
+    display: flex;
+    justify-content: center;
   }
 
   .page {

@@ -60,7 +60,14 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "bucket.loading": "Bucketlist wird geladen...",
     "bucket.empty": "Keine Bucketlist vorhanden. Lege oben eine Traumdestination an.",
     "bucket.error": "Bucketlist konnte nicht geladen werden.",
-    "bucket.itemYear": "Voraussichtlich: {year}"
+    "bucket.authRequired": "Bitte melde dich neu an.",
+    "bucket.itemYear": "Voraussichtlich: {year}",
+    "bucket.menu.more": "Mehr anzeigen",
+    "bucket.menu.delete": "Loeschen",
+    "bucket.delete.confirm": "Eintrag wirklich loeschen?",
+    "bucket.delete.error": "Bucketlist-Eintrag konnte nicht geloescht werden.",
+    "bucket.delete.loading": "Loesche...",
+    "bucket.back": "Zurueck"
     ,
     "tripForm.title": "Neue Reise hinzufügen",
     "tripForm.location": "Ort",
@@ -186,7 +193,14 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "bucket.loading": "Loading bucket list...",
     "bucket.empty": "No bucket list yet. Add a dream destination above.",
     "bucket.error": "Bucket list could not be loaded.",
-    "bucket.itemYear": "Expected: {year}"
+    "bucket.authRequired": "Please sign in again.",
+    "bucket.itemYear": "Expected: {year}",
+    "bucket.menu.more": "View details",
+    "bucket.menu.delete": "Delete",
+    "bucket.delete.confirm": "Really delete this entry?",
+    "bucket.delete.error": "Bucket list entry could not be deleted.",
+    "bucket.delete.loading": "Deleting...",
+    "bucket.back": "Back"
     ,
     "tripForm.title": "Add new trip",
     "tripForm.location": "Location",
@@ -312,7 +326,14 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "bucket.loading": "Chargement de la bucket list...",
     "bucket.empty": "Aucune bucket list. Ajoute une destination rêvée.",
     "bucket.error": "La bucket list n'a pas pu être chargée.",
-    "bucket.itemYear": "Prévu: {year}"
+    "bucket.authRequired": "Merci de vous reconnecter.",
+    "bucket.itemYear": "Prévu: {year}",
+    "bucket.menu.more": "Voir les détails",
+    "bucket.menu.delete": "Supprimer",
+    "bucket.delete.confirm": "Supprimer cette entrée ?",
+    "bucket.delete.error": "L'entrée de bucket list n'a pas pu être supprimée.",
+    "bucket.delete.loading": "Suppression...",
+    "bucket.back": "Retour"
     ,
     "tripForm.title": "Ajouter un voyage",
     "tripForm.location": "Lieu",
@@ -438,7 +459,14 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "bucket.loading": "Caricamento bucket list...",
     "bucket.empty": "Nessuna bucket list. Aggiungi una destinazione da sogno.",
     "bucket.error": "Impossibile caricare la bucket list.",
-    "bucket.itemYear": "Previsto: {year}"
+    "bucket.authRequired": "Effettua di nuovo l'accesso.",
+    "bucket.itemYear": "Previsto: {year}",
+    "bucket.menu.more": "Mostra dettagli",
+    "bucket.menu.delete": "Elimina",
+    "bucket.delete.confirm": "Vuoi davvero eliminare questa voce?",
+    "bucket.delete.error": "Impossibile eliminare la voce della bucket list.",
+    "bucket.delete.loading": "Eliminazione...",
+    "bucket.back": "Indietro"
     ,
     "tripForm.title": "Aggiungi viaggio",
     "tripForm.location": "Luogo",
