@@ -66,6 +66,11 @@
   const clampLat = (lat: number) => Math.min(Math.max(lat, -85), 85);
   const normalizeLng = (lng: number) => ((lng + 180) % 360) - 180;
 
+  // Realtime
+  let tripsChannelRealtime: ReturnType<typeof supabase.channel> | null = null;
+  let bucketChannelRealtime: ReturnType<typeof supabase.channel> | null = null;
+  let currentUserId: string | null = null;
+
   function startSpin() {
     if (activeView !== "globe") return;
     stopSpin();
@@ -260,8 +265,9 @@
 
     if (userError || !user) {
       errorMessage = "Bitte neu einloggen.";
-      return { collected: [], userAvailable: false };
+      return { collected: [], userAvailable: false, userId: null };
     }
+    currentUserId = user.id;
 
     const [reisenRes, bucketRes] = await Promise.all([
       supabase.from("reisen").select("id,title,location,lat,lng,images,cover_image_url").eq("user_id", user.id),
@@ -284,12 +290,13 @@
       })
     );
 
-    if (bucketRes.error || (bucketRes.data?.length ?? 0) === 0) {
+    if (bucketRes.error) {
       const fallbackBuckets = await fetchBucketlistFallback(user.id, bucketRes.error);
       collected.push(...fallbackBuckets);
       bucketFailed = fallbackBuckets.length === 0;
       bucketError = bucketFailed ? "Bucketlist konnte nicht geladen werden." : "";
     } else {
+      // kein Fehler: auch wenn leer, keine Fallback-Daten aus Mongo nachziehen
       bucketRes.data?.forEach((b) =>
         collected.push({
           id: b.id,
@@ -335,7 +342,7 @@
         img: p.images?.[0] ?? p.cover_image_url ?? null
       }));
 
-    return { collected, userAvailable: true };
+    return { collected, userAvailable: true, userId: user.id };
   }
 
 
@@ -436,6 +443,19 @@
     }
 
     return items;
+  }
+
+  function teardownMaps() {
+    if (map) {
+      map.remove();
+      map = null;
+    }
+    if (globeMap) {
+      globeMap.remove();
+      globeMap = null;
+    }
+    markerById = {};
+    clearSearchMarkers();
   }
 
   async function buildMaps(collected: TripPoint[]) {
@@ -591,7 +611,7 @@
   onMount(async () => {
     try {
       loading = true;
-      const { collected, userAvailable } = await loadData();
+      const { collected, userAvailable, userId } = await loadData();
 
       // Falls kein User: sofort anzeigen und abbrechen
       if (!userAvailable) {
@@ -608,6 +628,9 @@
       }
 
       await buildMaps(collected);
+      if (userId) {
+        startRealtime(userId);
+      }
     } catch (err) {
       console.error("Karte/Globus Fehler:", err);
       errorMessage = "Karte konnte nicht geladen werden.";
@@ -621,7 +644,49 @@
     if (spinPausedTimer) clearTimeout(spinPausedTimer);
     if (fetchDebounce) clearTimeout(fetchDebounce);
     fetchController?.abort();
+    stopRealtime();
+    teardownMaps();
   });
+
+  function stopRealtime() {
+    if (tripsChannelRealtime) supabase.removeChannel(tripsChannelRealtime);
+    if (bucketChannelRealtime) supabase.removeChannel(bucketChannelRealtime);
+    tripsChannelRealtime = null;
+    bucketChannelRealtime = null;
+  }
+
+  async function refreshDataAndMaps() {
+    const { collected, userAvailable } = await loadData();
+    if (!userAvailable) return;
+    teardownMaps();
+    await tick();
+    await buildMaps(collected);
+  }
+
+  function startRealtime(userId: string) {
+    stopRealtime();
+    tripsChannelRealtime = supabase
+      .channel(`map-reisen-${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "reisen", filter: `user_id=eq.${userId}` },
+        async () => {
+          await refreshDataAndMaps();
+        }
+      )
+      .subscribe();
+
+    bucketChannelRealtime = supabase
+      .channel(`map-bucket-${userId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "bucketlist", filter: `user_id=eq.${userId}` },
+        async () => {
+          await refreshDataAndMaps();
+        }
+      )
+      .subscribe();
+  }
 </script>
 
 <svelte:head>

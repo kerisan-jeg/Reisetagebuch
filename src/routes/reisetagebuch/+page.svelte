@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from "svelte";
   import { fade } from "svelte/transition";
+  import { cubicInOut } from "svelte/easing";
   import { supabase } from "$lib/supabaseClient";
   import MapGlobeCard from "$lib/components/MapGlobeCard.svelte";
   import { t } from "$lib/i18n";
@@ -85,11 +86,13 @@
   });
 
   function collectTripImages(allTrips: Trip[]) {
-    const imgs = allTrips
-      .flatMap((trip) => [...(trip.images ?? []), trip.cover_image_url ?? null])
-      .filter((url): url is string => !!url);
-
-    const unique = Array.from(new Set(imgs));
+    const imgs = allTrips.flatMap((trip) => {
+      const list: (string | null | undefined)[] = [];
+      if (trip.cover_image_url) list.push(trip.cover_image_url);
+      if (trip.images?.length) list.push(...trip.images);
+      return list;
+    });
+    const unique = Array.from(new Set(imgs.filter((url): url is string => !!url)));
     return unique.length ? unique : fallbackHeroImages;
   }
 
@@ -134,8 +137,6 @@
       refreshMessage = "Aktualisiere Reisen...";
     }
 
-    let tripsLoaded = false;
-    let reisenErrorMsg = "";
     reisenError = "";
 
     const { data: tripsData, error: tripsError } = await supabase
@@ -146,51 +147,9 @@
 
     if (!tripsError && tripsData) {
       trips = tripsData as Trip[];
-      // optional Mongo-Fallback, um Bilder anzureichern
-      try {
-        const res = await fetch(`/api/reisen?user_id=${encodeURIComponent(userId)}`);
-        const payload = await res.json();
-        if (res.ok && payload?.ok) {
-          const apiTrips = (payload.trips ?? []) as Trip[];
-          const byId = Object.fromEntries(apiTrips.map((t) => [t.id, t]));
-          trips = trips.map((t) => {
-            const fallback = byId[t.id];
-            if (!fallback) return t;
-            return {
-              ...t,
-              cover_image_url: t.cover_image_url ?? fallback.cover_image_url ?? fallback.images?.[0] ?? null,
-              images: t.images ?? fallback.images ?? null
-            };
-          });
-        }
-      } catch {
-        // optional fallback kann ignoriert werden
-      }
-      tripsLoaded = true;
     } else {
-      console.error("Supabase Reisen Fehler, versuche Fallback /api/reisen:", tripsError);
-      try {
-        const res = await fetch(`/api/reisen?user_id=${encodeURIComponent(userId)}`);
-        const payload = await res.json();
-
-        if (res.ok && payload?.ok) {
-          trips = (payload.trips ?? []) as Trip[];
-          tripsLoaded = true;
-        } else {
-          reisenErrorMsg = payload?.error || res.statusText || "Unbekannter Fehler";
-          trips = [];
-        }
-      } catch (err) {
-        reisenErrorMsg = err instanceof Error ? err.message : String(err);
-        trips = [];
-      }
-
-      if (reisenErrorMsg) {
-        console.error("Reisen konnten nicht geladen werden:", reisenErrorMsg);
-      }
-    }
-
-    if (!tripsLoaded && reisenErrorMsg) {
+      console.error("Reisen konnten nicht geladen werden:", tripsError);
+      trips = [];
       reisenError = "Reisen konnten nicht geladen werden.";
     }
 
@@ -218,13 +177,13 @@
       .eq("user_id", userId)
       .order("title", { ascending: true });
 
-    const needsFallbackQuery = bucketErrorRaw || (bucketData?.length ?? 0) === 0;
-
-    if (needsFallbackQuery) {
+    if (bucketErrorRaw) {
+      // Nur bei echtem Fehler versuchen wir einen Fallback
       const fallbackBuckets = await fetchBucketlistFallback(userId, bucketErrorRaw);
       bucketItems = fallbackBuckets as Bucket[];
       bucketError = fallbackBuckets.length === 0 ? "Bucketlist konnte nicht geladen werden." : "";
     } else {
+      // Kein Fehler: auch leere Ergebnisse sind okay (zeigen dann "keine Bucketlist")
       bucketItems = (bucketData ?? []) as Bucket[];
       bucketError = "";
     }
@@ -363,16 +322,16 @@
       <div
         class="hero-bg"
         style={`background-image: url('${heroImages[heroIndex]}')`}
-        in:fade={{ duration: 700 }}
-        out:fade={{ duration: 700 }}
+        in:fade={{ duration: 800, easing: cubicInOut }}
+        out:fade={{ duration: 800, easing: cubicInOut }}
       ></div>
     {/key}
     {#key `contain-${heroIndex}`}
       <div
         class="hero-photo"
         style={`background-image: url('${heroImages[heroIndex]}')`}
-        in:fade={{ duration: 700 }}
-        out:fade={{ duration: 700 }}
+        in:fade={{ duration: 800, easing: cubicInOut }}
+        out:fade={{ duration: 800, easing: cubicInOut }}
       ></div>
     {/key}
     <div class="hero-overlay"></div>

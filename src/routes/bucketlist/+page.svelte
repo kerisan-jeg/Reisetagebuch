@@ -28,6 +28,7 @@
   let deletingId: string | null = null;
   let openMenuId: string | null = null;
   let firstMenuItem: HTMLAnchorElement | null = null;
+  let currentUserId: string | null = null;
 
   function nextBackground() {
     currentBackground = (currentBackground + 1) % fallbackSlides.length;
@@ -73,6 +74,7 @@
         errorMessage = $t("bucket.authRequired");
         return;
       }
+      currentUserId = user.id;
 
       const { data, error } = await supabase
         .from("bucketlist")
@@ -108,6 +110,12 @@
     if (error) {
       errorMessage = $t("bucket.delete.error");
     } else {
+      // best effort: auch Mongo-Cache loeschen
+      if (currentUserId) {
+        fetch(`/api/bucketlist/${id}?user_id=${encodeURIComponent(currentUserId)}`, { method: "DELETE" }).catch(
+          (err) => console.warn("Mongo Delete ignoriert:", err)
+        );
+      }
       items = items.filter((i) => i.id !== id);
     }
     deletingId = null;

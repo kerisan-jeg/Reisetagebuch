@@ -46,7 +46,7 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "home.tripsEmpty": "Du hast noch keine Reisen erfasst.",
     "home.bucket": "Bucket List",
     "home.bucketHint": "Deine nächsten Ziele",
-    "home.bucketEmpty": "Noch keine Ziele erfasst.",
+    "home.bucketEmpty": "Du hast noch keine Reisen erfasst.",
     "home.bucketError": "Bucketlist konnte nicht geladen werden.",
     "home.map": "Weltkarte"
     ,
@@ -179,7 +179,7 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "home.tripsEmpty": "You have not added any trips yet.",
     "home.bucket": "Bucket List",
     "home.bucketHint": "Your next goals",
-    "home.bucketEmpty": "No goals added yet.",
+    "home.bucketEmpty": "You have not added any trips yet.",
     "home.bucketError": "Bucket list could not be loaded.",
     "home.map": "World map"
     ,
@@ -312,7 +312,7 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "home.tripsEmpty": "Tu n'as encore ajouté aucun voyage.",
     "home.bucket": "Bucket List",
     "home.bucketHint": "Tes prochaines destinations",
-    "home.bucketEmpty": "Aucun objectif ajouté.",
+    "home.bucketEmpty": "Tu n'as encore ajouté aucun voyage.",
     "home.bucketError": "La bucket list n'a pas pu être chargée.",
     "home.map": "Carte du monde"
     ,
@@ -445,7 +445,7 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "home.tripsEmpty": "Non hai ancora aggiunto viaggi.",
     "home.bucket": "Bucket List",
     "home.bucketHint": "Le tue prossime mete",
-    "home.bucketEmpty": "Nessun obiettivo aggiunto.",
+    "home.bucketEmpty": "Non hai ancora aggiunto viaggi.",
     "home.bucketError": "Impossibile caricare la bucket list.",
     "home.map": "Mappa del mondo"
     ,

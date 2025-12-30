@@ -3,7 +3,7 @@ import { json } from "@sveltejs/kit";
 import { getDb } from "$lib/server/mongo";
 import { MONGODB_URI } from "$env/static/private";
 
-// DELETE /api/reisen/:id?user_id=...
+// DELETE /api/bucketlist/:id?user_id=...
 export const DELETE: RequestHandler = async ({ params, url }) => {
   if (!MONGODB_URI) {
     return json({ ok: false, error: "mongo disabled (MONGODB_URI missing)" }, { status: 503 });
@@ -17,7 +17,7 @@ export const DELETE: RequestHandler = async ({ params, url }) => {
   }
 
   const db = await getDb();
-  const res = await db.collection("reisen").deleteOne({ _id: id, user_id: userId });
+  const res = await db.collection("bucketlist").deleteOne({ _id: id, user_id: userId });
 
   return json({ ok: true, deleted: res.deletedCount ?? 0 });
 };

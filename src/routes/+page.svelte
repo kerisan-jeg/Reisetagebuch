@@ -12,9 +12,12 @@
   let socialLoading: "google" | "" = "";
   let verifyHint = "";
 
-  const redirectTo = import.meta.env?.DEV
-    ? "http://localhost:5173/reisetagebuch"
-    : "https://DEINE-PROD-DOMAIN.ch/reisetagebuch";
+  const redirectTo =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/reisetagebuch`
+      : import.meta.env?.DEV
+        ? "http://localhost:5173/reisetagebuch"
+        : "https://DEINE-PROD-DOMAIN.ch/reisetagebuch";
 
   const slideshowImages = [
     "/landing/Berg.jpg",

@@ -94,15 +94,26 @@
     deletingId = id;
 
     try {
-      const res = await fetch(`/api/reisen/${id}?user_id=${encodeURIComponent(currentUserId)}`, {
-        method: "DELETE"
-      });
-      const payload = await res.json();
+      // 1) In Supabase loeschen (Primärquelle)
+      const { error: sbError } = await supabase
+        .from("reisen")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", currentUserId);
 
-      if (!res.ok || !payload?.ok) {
-        console.error("Loeschen fehlgeschlagen:", payload?.error || res.statusText);
-        alert(payload?.error || "Loeschen fehlgeschlagen.");
+      if (sbError) {
+        console.error("Supabase Delete Fehler:", sbError);
+        alert(sbError.message || "Loeschen fehlgeschlagen.");
         return;
+      }
+
+      // 2) Best effort: auch aus Mongo-Cache entfernen
+      try {
+        await fetch(`/api/reisen/${id}?user_id=${encodeURIComponent(currentUserId)}`, {
+          method: "DELETE"
+        });
+      } catch (mongoErr) {
+        console.warn("Mongo Delete ignoriert:", mongoErr);
       }
 
       trips = trips.filter((trip) => trip.id !== id);

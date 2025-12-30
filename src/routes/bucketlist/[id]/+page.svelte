@@ -91,13 +91,26 @@
     if (!item || deleting) return;
     if (!confirm($t("bucket.delete.confirm"))) return;
     deleting = true;
+
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    const userId = userData?.user?.id ?? null;
+
     const { error } = await supabase.from("bucketlist").delete().eq("id", item.id);
-    deleting = false;
     if (error) {
       errorMessage = $t("bucket.delete.error");
-    } else {
-      await goto("/bucketlist", { replaceState: true });
+      deleting = false;
+      return;
     }
+
+    // best effort: Mongo-Cache loeschen
+    if (userId) {
+      fetch(`/api/bucketlist/${item.id}?user_id=${encodeURIComponent(userId)}`, { method: "DELETE" }).catch((err) =>
+        console.warn("Mongo Delete ignoriert:", err)
+      );
+    }
+
+    deleting = false;
+    await goto("/bucketlist", { replaceState: true });
   }
 
   onMount(async () => {
