@@ -1,5 +1,8 @@
 import { MongoClient, type Db } from "mongodb";
-import { MONGODB_URI, MONGODB_DB_NAME } from "$env/static/private";
+import { env } from "$env/dynamic/private";
+
+const MONGODB_URI = env.MONGODB_URI;
+const MONGODB_DB_NAME = env.MONGODB_DB_NAME;
 
 let client: MongoClient | null = MONGODB_URI ? new MongoClient(MONGODB_URI) : null;
 let dbPromise: Promise<Db> | null = null;
