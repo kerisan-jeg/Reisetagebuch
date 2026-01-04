@@ -13,7 +13,6 @@
     first_name?: string;
     last_name?: string;
     birthday?: string;
-    deletion_requested_until?: string | null;
   };
 
   const heroImages = ["/landing/Berg.jpg", "/landing/Staedtetrip.jpg", "/landing/Strand.jpg"];
@@ -29,7 +28,6 @@
   let deleting = false;
   let deleteMessage = "";
   let confirmingDelete = false;
-  let deletionUntil: string | null = null;
 
   onMount(() => {
     if (heroImages.length > 1) {
@@ -63,11 +61,8 @@
       full_name: u.user_metadata?.full_name,
       first_name: u.user_metadata?.first_name,
       last_name: u.user_metadata?.last_name,
-      birthday: u.user_metadata?.birthday,
-      deletion_requested_until: u.user_metadata?.deletion_requested_until ?? null
+      birthday: u.user_metadata?.birthday
     };
-
-    deletionUntil = user.deletion_requested_until ?? null;
 
     const [reisenRes, bucketRes, kostenRes] = await Promise.all([
       supabase.from("reisen").select("id", { count: "exact", head: true }).eq("user_id", u.id),
@@ -84,9 +79,9 @@
   }
 
   const formatDate = (value?: string | null) => {
-    if (!value) return "—";
+    if (!value) return "-";
     const d = new Date(value);
-    return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+    return Number.isNaN(d.getTime()) ? "-" : d.toLocaleDateString();
   };
 
   async function deleteProfile() {
@@ -99,12 +94,26 @@
     deleting = true;
     deleteMessage = "";
     try {
-      const until = new Date();
-      until.setDate(until.getDate() + 30);
-      await supabase.auth.updateUser({ data: { deletion_requested_until: until.toISOString() } });
-      deletionUntil = until.toISOString();
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (sessionError || !token) {
+        throw new Error($t("profile.error.auth"));
+      }
+
+      const res = await fetch("/api/profile/delete", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!res.ok) {
+        const payload = await res.json().catch(() => null);
+        throw new Error(payload?.error || $t("profile.error.delete"));
+      }
+
       await supabase.auth.signOut();
-      deleteMessage = $t("profile.delete.marked");
+      deleteMessage = $t("profile.delete.done");
       try {
         await goto("/auth/login", { replaceState: true });
       } catch {
@@ -112,22 +121,10 @@
       }
     } catch (err) {
       console.error(err);
-      deleteMessage = $t("profile.error.delete");
+      deleteMessage = err?.message ?? $t("profile.error.delete");
     } finally {
       deleting = false;
       confirmingDelete = false;
-    }
-  }
-
-  async function reactivateAccount() {
-    if (!user) return;
-    try {
-      await supabase.auth.updateUser({ data: { deletion_requested_until: null } });
-      deletionUntil = null;
-      deleteMessage = $t("profile.warning.reactivate");
-    } catch (err) {
-      console.error(err);
-      deleteMessage = $t("profile.error.delete");
     }
   }
 </script>
@@ -159,10 +156,10 @@
       <div class="identity">
         <p class="eyebrow">{$t("profile.hero.eyebrow")}</p>
         <h1>{user?.full_name || `${user?.first_name ?? ""} ${user?.last_name ?? ""}`.trim() || $t("profile.title")}</h1>
-        <p class="email">{user?.email ?? "—"}</p>
+        <p class="email">{user?.email ?? "-"}</p>
         <div class="tags">
-          <span class="chip">{$t("profile.hero.since")} {user ? formatDate(user.created_at) : "—"}</span>
-          <span class="chip subtle">ID {user?.id ?? "—"}</span>
+          <span class="chip">{$t("profile.hero.since")} {user ? formatDate(user.created_at) : "-"}</span>
+          <span class="chip subtle">ID {user?.id ?? "-"}</span>
         </div>
       </div>
     </section>
@@ -172,17 +169,6 @@
     {:else if loading}
       <div class="card status-card">{$t("profile.title")}...</div>
     {:else}
-      {#if deletionUntil}
-        <div class="card warning-card">
-          <div>
-            <p class="label">{$t("profile.warning.title")}</p>
-            <p class="body">{$t("profile.warning.body").replace("{date}", formatDate(deletionUntil))}</p>
-            <p class="hint">{$t("profile.warning.hint")}</p>
-          </div>
-          <button class="primary-btn" on:click={reactivateAccount}>{$t("profile.warning.reactivate")}</button>
-        </div>
-      {/if}
-
       <section class="grid two">
         <div class="card stat-card">
           <p class="label">{$t("profile.cards.reisen")}</p>
@@ -204,11 +190,11 @@
       <section class="grid three">
         <div class="card info">
           <p class="label">{$t("profile.fields.firstname")}</p>
-          <p class="body">{user?.first_name || "—"}</p>
+          <p class="body">{user?.first_name || "-"}</p>
         </div>
         <div class="card info">
           <p class="label">{$t("profile.fields.lastname")}</p>
-          <p class="body">{user?.last_name || "—"}</p>
+          <p class="body">{user?.last_name || "-"}</p>
         </div>
         <div class="card info">
           <p class="label">{$t("profile.fields.birthday")}</p>
@@ -216,15 +202,15 @@
         </div>
         <div class="card info span-2">
           <p class="label">{$t("profile.fields.email")}</p>
-          <p class="body">{user?.email ?? "—"}</p>
+          <p class="body">{user?.email ?? "-"}</p>
         </div>
         <div class="card info">
           <p class="label">{$t("profile.fields.created")}</p>
-          <p class="body">{user?.created_at ? new Date(user.created_at).toLocaleString() : "—"}</p>
+          <p class="body">{user?.created_at ? new Date(user.created_at).toLocaleString() : "-"}</p>
         </div>
         <div class="card info span-3">
           <p class="label">{$t("profile.fields.userId")}</p>
-          <p class="body mono">{user?.id ?? "—"}</p>
+          <p class="body mono">{user?.id ?? "-"}</p>
         </div>
       </section>
 
@@ -246,7 +232,7 @@
                     {$t("tripForm.cancel")}
                   </button>
                   <button class="danger-btn" on:click={deleteProfile} disabled={deleting}>
-                    {deleting ? $t("profile.delete.loading") : $t("profile.delete.markAction")}
+                    {deleting ? $t("profile.delete.loading") : $t("profile.delete.button")}
                   </button>
                 </div>
               </div>
@@ -400,25 +386,6 @@
     font-weight: 600;
   }
 
-  .warning-card {
-    display: flex;
-    justify-content: space-between;
-    gap: 16px;
-    align-items: center;
-    background: rgba(251, 191, 36, 0.12);
-    border-color: rgba(251, 191, 36, 0.4);
-  }
-
-  .primary-btn {
-    border: none;
-    border-radius: 12px;
-    padding: 10px 14px;
-    background: #0ea5e9;
-    color: #0b1120;
-    font-weight: 700;
-    cursor: pointer;
-  }
-
   .grid {
     display: grid;
     gap: 14px;
@@ -535,3 +502,13 @@
     }
   }
 </style>
+
+
+
+
+
+
+
+
+
+
