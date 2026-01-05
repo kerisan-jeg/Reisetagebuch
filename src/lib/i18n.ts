@@ -36,9 +36,8 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "register.success": "Registrierung erfolgreich! Bitte bestätige deine E-Mail-Adresse. Überprüfe dein Postfach (und Spam-Ordner).",
     "register.duplicate": "Diese E-Mail ist bereits registriert. Bitte logge dich ein.",
     "register.noAccount": "Schon ein Konto?",
-    "register.loginNow": "Jetzt einloggen"
+    "register.loginNow": "Jetzt einloggen",
 
-    ,
     "home.title": "Hallo {name}",
     "home.subtitle": "Deine Reisen, Bucketlist und Globe in einer Ansicht.",
     "home.trips": "Reisen",
@@ -48,13 +47,13 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "home.bucketHint": "Deine nächsten Ziele",
     "home.bucketEmpty": "Du hast noch keine Reisen erfasst.",
     "home.bucketError": "Bucketlist konnte nicht geladen werden.",
-    "home.map": "Weltkarte"
-    ,
+    "home.map": "Weltkarte",
+
     "trips.title": "Meine Reisen",
     "trips.cta": "Neue Reise hinzufügen",
-    "trips.empty": "Du hast noch keine Reisen angelegt. Klicke oben auf \"Neue Reise hinzufügen\".",
-    "trips.loading": "Reisen werden geladen..."
-    ,
+    "trips.empty": 'Du hast noch keine Reisen angelegt. Klicke oben auf "Neue Reise hinzufügen".',
+    "trips.loading": "Reisen werden geladen...",
+
     "bucket.title": "Bucketlist",
     "bucket.cta": "Traumdestination hinzufügen",
     "bucket.loading": "Bucketlist wird geladen...",
@@ -63,12 +62,12 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "bucket.authRequired": "Bitte melde dich neu an.",
     "bucket.itemYear": "Voraussichtlich: {year}",
     "bucket.menu.more": "Mehr anzeigen",
-    "bucket.menu.delete": "Loeschen",
-    "bucket.delete.confirm": "Eintrag wirklich loeschen?",
-    "bucket.delete.error": "Bucketlist-Eintrag konnte nicht geloescht werden.",
-    "bucket.delete.loading": "Loesche...",
-    "bucket.back": "Zurueck"
-    ,
+    "bucket.menu.delete": "Löschen",
+    "bucket.delete.confirm": "Eintrag wirklich löschen?",
+    "bucket.delete.error": "Bucketlist-Eintrag konnte nicht gelöscht werden.",
+    "bucket.delete.loading": "Lösche...",
+    "bucket.back": "Zurück",
+
     "tripForm.title": "Neue Reise hinzufügen",
     "tripForm.location": "Ort",
     "tripForm.withWhom": "Mit wem",
@@ -92,20 +91,21 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "tripForm.placeholder.rating": "z.B. 8",
     "tripForm.placeholder.description": "Besondere Momente, Highlights, Erinnerungen...",
     "tripForm.locationPicker": "Standort setzen (Reise)",
+
     "bucketForm.title": "Traumdestination hinzufügen",
     "bucketForm.name": "Ort",
     "bucketForm.images": "Bilder hochladen",
     "bucketForm.locationPicker": "Standort setzen (Bucketlist)",
     "bucketForm.ideas": "Stichpunkte / Ideen",
     "bucketForm.placeholder.name": "z.B. Bora Bora",
-    "bucketForm.placeholder.ideas": "• Must-See Spots\n• Restaurants ausprobieren\n• Aktivitäten am Wasser",
+    "bucketForm.placeholder.ideas": "- Must-See Spots\n- Restaurants ausprobieren\n- Aktivitäten am Wasser",
     "bucketForm.save": "Traumdestination speichern",
     "bucketForm.cancel": "Abbrechen",
     "bucketForm.errorAuth": "Bitte melde dich erneut an (kein Benutzer gefunden).",
     "bucketForm.errorUpload": "Bild-Upload fehlgeschlagen:",
     "bucketForm.errorLocation": "Bitte setze einen Standort auf der Karte.",
-    "bucketForm.errorSave": "Traumdestination konnte nicht gespeichert werden."
-    ,
+    "bucketForm.errorSave": "Traumdestination konnte nicht gespeichert werden.",
+
     "profile.title": "Profil",
     "profile.cards.reisen": "Reisen",
     "profile.cards.bucket": "Bucketlist",
@@ -164,9 +164,8 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "register.success": "Registration successful! Please verify your email address. Check your inbox and spam folder.",
     "register.duplicate": "This email is already registered. Please log in.",
     "register.noAccount": "Already have an account?",
-    "register.loginNow": "Log in now"
+    "register.loginNow": "Log in now",
 
-    ,
     "home.title": "Hello {name}",
     "home.subtitle": "Your trips, bucket list and globe in one view.",
     "home.trips": "Trips",
@@ -176,13 +175,13 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "home.bucketHint": "Your next goals",
     "home.bucketEmpty": "You have not added any trips yet.",
     "home.bucketError": "Bucket list could not be loaded.",
-    "home.map": "World map"
-    ,
+    "home.map": "World map",
+
     "trips.title": "My Trips",
     "trips.cta": "Add new trip",
-    "trips.empty": "You have not added any trips yet. Click \"Add new trip\" above.",
-    "trips.loading": "Loading trips..."
-    ,
+    "trips.empty": 'You have not added any trips yet. Click "Add new trip" above.',
+    "trips.loading": "Loading trips...",
+
     "bucket.title": "Bucket List",
     "bucket.cta": "Add dream destination",
     "bucket.loading": "Loading bucket list...",
@@ -195,8 +194,8 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "bucket.delete.confirm": "Really delete this entry?",
     "bucket.delete.error": "Bucket list entry could not be deleted.",
     "bucket.delete.loading": "Deleting...",
-    "bucket.back": "Back"
-    ,
+    "bucket.back": "Back",
+
     "tripForm.title": "Add new trip",
     "tripForm.location": "Location",
     "tripForm.withWhom": "With whom",
@@ -220,20 +219,21 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "tripForm.placeholder.rating": "e.g. 8",
     "tripForm.placeholder.description": "Special moments, highlights, memories...",
     "tripForm.locationPicker": "Set location (trip)",
+
     "bucketForm.title": "Add dream destination",
     "bucketForm.name": "Place",
     "bucketForm.images": "Upload images",
     "bucketForm.locationPicker": "Set location (bucket list)",
     "bucketForm.ideas": "Notes / Ideas",
     "bucketForm.placeholder.name": "e.g. Bora Bora",
-    "bucketForm.placeholder.ideas": "• Must-see spots\n• Try restaurants\n• Activities on/near water",
+    "bucketForm.placeholder.ideas": "- Must-see spots\n- Try restaurants\n- Activities on/near water",
     "bucketForm.save": "Save dream destination",
     "bucketForm.cancel": "Cancel",
     "bucketForm.errorAuth": "Please log in again (no user found).",
     "bucketForm.errorUpload": "Image upload failed:",
     "bucketForm.errorLocation": "Please set a location on the map.",
-    "bucketForm.errorSave": "Dream destination could not be saved."
-    ,
+    "bucketForm.errorSave": "Dream destination could not be saved.",
+
     "profile.title": "Profile",
     "profile.cards.reisen": "Trips",
     "profile.cards.bucket": "Bucket list",
@@ -292,9 +292,8 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "register.success": "Inscription réussie ! Merci de vérifier ton e-mail (boîte de réception et spams).",
     "register.duplicate": "Cet e-mail est déjà enregistré. Merci de te connecter.",
     "register.noAccount": "Déjà un compte ?",
-    "register.loginNow": "Se connecter"
+    "register.loginNow": "Se connecter",
 
-    ,
     "home.title": "Bonjour {name}",
     "home.subtitle": "Tes voyages, ta bucket list et le globe en un coup d'œil.",
     "home.trips": "Voyages",
@@ -304,27 +303,27 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "home.bucketHint": "Tes prochaines destinations",
     "home.bucketEmpty": "Tu n'as encore ajouté aucun voyage.",
     "home.bucketError": "La bucket list n'a pas pu être chargée.",
-    "home.map": "Carte du monde"
-    ,
+    "home.map": "Carte du monde",
+
     "trips.title": "Mes voyages",
     "trips.cta": "Ajouter un voyage",
-    "trips.empty": "Tu n'as encore ajouté aucun voyage. Clique sur \"Ajouter un voyage\".",
-    "trips.loading": "Chargement des voyages..."
-    ,
+    "trips.empty": 'Tu n\'as encore ajouté aucun voyage. Clique sur "Ajouter un voyage".',
+    "trips.loading": "Chargement des voyages...",
+
     "bucket.title": "Bucket List",
     "bucket.cta": "Ajouter une destination rêvée",
     "bucket.loading": "Chargement de la bucket list...",
     "bucket.empty": "Aucune bucket list. Ajoute une destination rêvée.",
     "bucket.error": "La bucket list n'a pas pu être chargée.",
-    "bucket.authRequired": "Merci de vous reconnecter.",
+    "bucket.authRequired": "Merci de te reconnecter.",
     "bucket.itemYear": "Prévu: {year}",
     "bucket.menu.more": "Voir les détails",
     "bucket.menu.delete": "Supprimer",
     "bucket.delete.confirm": "Supprimer cette entrée ?",
     "bucket.delete.error": "L'entrée de bucket list n'a pas pu être supprimée.",
     "bucket.delete.loading": "Suppression...",
-    "bucket.back": "Retour"
-    ,
+    "bucket.back": "Retour",
+
     "tripForm.title": "Ajouter un voyage",
     "tripForm.location": "Lieu",
     "tripForm.withWhom": "Avec qui",
@@ -348,20 +347,21 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "tripForm.placeholder.rating": "p.ex. 8",
     "tripForm.placeholder.description": "Moments spéciaux, points forts, souvenirs...",
     "tripForm.locationPicker": "Définir le lieu (voyage)",
+
     "bucketForm.title": "Ajouter une destination rêvée",
     "bucketForm.name": "Lieu",
     "bucketForm.images": "Téléverser des images",
     "bucketForm.locationPicker": "Définir le lieu (bucket list)",
     "bucketForm.ideas": "Notes / Idées",
     "bucketForm.placeholder.name": "p.ex. Bora Bora",
-    "bucketForm.placeholder.ideas": "• Lieux à voir\n• Restaurants à essayer\n• Activités sur/près de l'eau",
+    "bucketForm.placeholder.ideas": "- Lieux à voir\n- Restaurants à essayer\n- Activités sur/près de l'eau",
     "bucketForm.save": "Enregistrer la destination rêvée",
     "bucketForm.cancel": "Annuler",
     "bucketForm.errorAuth": "Merci de te reconnecter (utilisateur introuvable).",
     "bucketForm.errorUpload": "Échec du téléversement d'image :",
     "bucketForm.errorLocation": "Merci de définir un lieu sur la carte.",
-    "bucketForm.errorSave": "La destination rêvée n'a pas pu être enregistrée."
-    ,
+    "bucketForm.errorSave": "La destination rêvée n'a pas pu être enregistrée.",
+
     "profile.title": "Profil",
     "profile.cards.reisen": "Voyages",
     "profile.cards.bucket": "Bucket list",
@@ -420,9 +420,8 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "register.success": "Registrazione riuscita! Conferma l'e-mail. Controlla anche lo spam.",
     "register.duplicate": "Questa e-mail è già registrata. Accedi.",
     "register.noAccount": "Hai già un account?",
-    "register.loginNow": "Accedi ora"
+    "register.loginNow": "Accedi ora",
 
-    ,
     "home.title": "Ciao {name}",
     "home.subtitle": "I tuoi viaggi, bucket list e globo in un'unica vista.",
     "home.trips": "Viaggi",
@@ -432,13 +431,13 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "home.bucketHint": "Le tue prossime mete",
     "home.bucketEmpty": "Non hai ancora aggiunto viaggi.",
     "home.bucketError": "Impossibile caricare la bucket list.",
-    "home.map": "Mappa del mondo"
-    ,
+    "home.map": "Mappa del mondo",
+
     "trips.title": "I miei viaggi",
     "trips.cta": "Aggiungi un viaggio",
-    "trips.empty": "Non hai ancora aggiunto viaggi. Clicca su \"Aggiungi un viaggio\".",
-    "trips.loading": "Caricamento viaggi..."
-    ,
+    "trips.empty": 'Non hai ancora aggiunto viaggi. Clicca su "Aggiungi un viaggio".',
+    "trips.loading": "Caricamento viaggi...",
+
     "bucket.title": "Bucket List",
     "bucket.cta": "Aggiungi una destinazione da sogno",
     "bucket.loading": "Caricamento bucket list...",
@@ -451,8 +450,8 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "bucket.delete.confirm": "Vuoi davvero eliminare questa voce?",
     "bucket.delete.error": "Impossibile eliminare la voce della bucket list.",
     "bucket.delete.loading": "Eliminazione...",
-    "bucket.back": "Indietro"
-    ,
+    "bucket.back": "Indietro",
+
     "tripForm.title": "Aggiungi viaggio",
     "tripForm.location": "Luogo",
     "tripForm.withWhom": "Con chi",
@@ -476,20 +475,21 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "tripForm.placeholder.rating": "es. 8",
     "tripForm.placeholder.description": "Momenti speciali, highlight, ricordi...",
     "tripForm.locationPicker": "Imposta posizione (viaggio)",
+
     "bucketForm.title": "Aggiungi destinazione da sogno",
     "bucketForm.name": "Luogo",
     "bucketForm.images": "Carica immagini",
     "bucketForm.locationPicker": "Imposta posizione (bucket list)",
     "bucketForm.ideas": "Appunti / Idee",
     "bucketForm.placeholder.name": "es. Bora Bora",
-    "bucketForm.placeholder.ideas": "• Luoghi imperdibili\n• Ristoranti da provare\n• Attività sull'acqua/vicino all'acqua",
+    "bucketForm.placeholder.ideas": "- Luoghi imperdibili\n- Ristoranti da provare\n- Attività sull'acqua/vicino all'acqua",
     "bucketForm.save": "Salva destinazione da sogno",
     "bucketForm.cancel": "Annulla",
     "bucketForm.errorAuth": "Effettua di nuovo l'accesso (utente non trovato).",
     "bucketForm.errorUpload": "Caricamento immagine non riuscito:",
     "bucketForm.errorLocation": "Imposta una posizione sulla mappa.",
-    "bucketForm.errorSave": "Impossibile salvare la destinazione da sogno."
-    ,
+    "bucketForm.errorSave": "Impossibile salvare la destinazione da sogno.",
+
     "profile.title": "Profilo",
     "profile.cards.reisen": "Viaggi",
     "profile.cards.bucket": "Bucket list",
@@ -508,14 +508,14 @@ const dictionaries: Record<Lang, Record<string, string>> = {
     "profile.delete.button": "Elimina profilo",
     "profile.delete.confirm": "Eliminare davvero?",
     "profile.error.auth": "Accedi di nuovo.",
-    "profile.error.delete": "Eliminazione non riuscita. Riprova piu tardi.",
+    "profile.error.delete": "Eliminazione non riuscita. Riprova più tardi.",
     "profile.hero.eyebrow": "Il tuo profilo",
     "profile.hero.since": "dal",
-    "profile.delete.hint": "La cancellazione e definitiva. Per tornare dovrai creare un nuovo profilo.",
+    "profile.delete.hint": "La cancellazione è definitiva. Per tornare dovrai creare un nuovo profilo.",
     "profile.delete.confirmTitle": "Sei sicuro?",
     "profile.delete.confirmHint": "Questo passaggio elimina subito il tuo account e tutti i dati.",
     "profile.delete.loading": "Eliminazione in corso...",
-    "profile.delete.done": "Il tuo account e stato eliminato. Puoi creare un nuovo profilo."
+    "profile.delete.done": "Il tuo account è stato eliminato. Puoi creare un nuovo profilo."
   }
 };
 
@@ -545,4 +545,3 @@ export const availableLanguages: { code: Lang; label: string }[] = [
   { code: "fr", label: "Français" },
   { code: "it", label: "Italiano" }
 ];
-
