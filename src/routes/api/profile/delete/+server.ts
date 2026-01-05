@@ -6,10 +6,11 @@ import { getDb } from "$lib/server/mongo";
 import { SUPABASE_URL } from "$lib/supabaseClient";
 
 const serviceRoleKey = env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = env.SUPABASE_URL ?? SUPABASE_URL;
 
 const supabaseAdmin =
-  SUPABASE_URL && serviceRoleKey
-    ? createClient(SUPABASE_URL, serviceRoleKey, {
+  supabaseUrl && serviceRoleKey
+    ? createClient(supabaseUrl, serviceRoleKey, {
         auth: { autoRefreshToken: false, persistSession: false }
       })
     : null;
@@ -25,8 +26,15 @@ const extractPath = (url: string, bucket: string): string | null => {
 };
 
 export const POST: RequestHandler = async ({ request }) => {
-  if (!SUPABASE_URL || !serviceRoleKey || !supabaseAdmin) {
-    return json({ ok: false, error: "SUPABASE_SERVICE_ROLE_KEY or SUPABASE_URL missing" }, { status: 503 });
+  if (!supabaseUrl || !serviceRoleKey || !supabaseAdmin) {
+    console.error("Delete profile env check failed:", {
+      supabaseUrlPresent: !!supabaseUrl,
+      serviceRoleKeyPresent: !!serviceRoleKey
+    });
+    return json(
+      { ok: false, error: "SUPABASE_SERVICE_ROLE_KEY or SUPABASE_URL missing (server)" },
+      { status: 503 }
+    );
   }
 
   const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");

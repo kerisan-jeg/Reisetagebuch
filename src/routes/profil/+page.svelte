@@ -111,18 +111,21 @@
         const payload = await res.json().catch(() => null);
         throw new Error(payload?.error || $t("profile.error.delete"));
       }
-
-      await supabase.auth.signOut();
-      deleteMessage = $t("profile.delete.done");
+    } catch (err) {
+      console.error(err);
+      deleteMessage = err?.message ?? $t("profile.error.delete");
+    } finally {
+      // Immer abmelden und auf Login umleiten, damit ein neues Konto angelegt werden muss.
+      try {
+        await supabase.auth.signOut();
+      } catch (signOutErr) {
+        console.warn("Signout nach Löschen fehlgeschlagen:", signOutErr);
+      }
       try {
         await goto("/auth/login", { replaceState: true });
       } catch {
         window.location.href = "/auth/login";
       }
-    } catch (err) {
-      console.error(err);
-      deleteMessage = err?.message ?? $t("profile.error.delete");
-    } finally {
       deleting = false;
       confirmingDelete = false;
     }
