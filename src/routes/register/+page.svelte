@@ -1,6 +1,7 @@
 <script lang="ts">
   import { supabase } from "$lib/supabaseClient";
   import { goto } from "$app/navigation";
+  import { PUBLIC_SITE_URL } from "$env/static/public";
   import Slideshow from "$lib/components/Slideshow.svelte";
   import { t } from "$lib/i18n";
 
@@ -19,6 +20,7 @@
   let loading = false;
   let message = "";
   let errorMessage = "";
+  const redirectBase = (PUBLIC_SITE_URL || "http://localhost:5173").replace(/\/$/, "");
 
   async function registerUser() {
     message = "";
@@ -45,7 +47,7 @@
           last_name: lastName,
           birthday
         },
-        emailRedirectTo: "http://localhost:5173"
+        emailRedirectTo: redirectBase || "http://localhost:5173"
       }
     });
 

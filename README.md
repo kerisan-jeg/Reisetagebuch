@@ -23,16 +23,24 @@
 <!-- Diese Vorlage ist für eine README.md im Repository gedacht. Abschnitte mit [Optional] können weggelassen werden, wenn in den Übungen nichts anderes verlangt wird. -->
 
 ## 1. Einordnung & Zielsetzung
-Kurz beschreiben, welches Problem adressiert wird und welches Ergebnis angestrebt ist.
-- **Kontext & Problem:** _[1–3 Sätze]_  
-- **Ziele:** _[stichwortartig oder 2–4 Sätze]_  
-- **Abgrenzung [Optional]:** _Was gehört explizit nicht zum Umfang?_
+**Kontext & Problem:** Reiseerlebnisse landen oft verstreut in Notizen, Fotos und Chats; ein zusammenhängender Überblick fehlt. Das Reisetagebuch soll Erinnerungen bündeln und späteres Reflektieren erleichtern.  
+**Ziel:** Webbasierter Prototyp, in dem Nutzer:innen Reisen anlegen, Erlebnisse festhalten und reflektieren – Fokus auf Erinnerungen statt Buchung/Planung.  
+**Ziele im Detail:** Schneller Workflow (Reise anlegen → Einträge erfassen → Erinnerungen reflektieren) in unter 5 Minuten, zentrale und übersichtliche Sammlung, nutzerfreundlich auf verschiedenen Endgeräten, technische Übung mit moderner Webarchitektur (SvelteKit), Persistenz (MongoDB) und Backend-Services (Supabase) als Basis für spätere Erweiterungen (z. B. Medien, Analysen, Kollaboration).  
+**Abgrenzung:** Keine Reisebuchungen, Empfehlungen oder KI-Auswertungen; bewusst schlanker, validierungsfähiger MVP.
 
 ## 2. Zielgruppe & Stakeholder
-Wem nützt die Lösung, wer ist beteiligt oder betroffen?
-- **Primäre Zielgruppe:** _[kurz beschreiben]_  
-- **Weitere Stakeholder [Optional]:** _[z. B. Verwaltung, Geschäftsleitung]_  
-- **Annahmen [Optional]:** _[welche Hypothesen werden geprüft?]_
+**Primäre Zielgruppe:**  
+Reisende (Einzelpersonen, Paare, Familien, Studierende/Backpacker:innen), die 1–3 Freizeit-Reisen pro Jahr machen und nach der Reise Erlebnisse strukturiert und ohne komplexe Tools festhalten wollen – mit Text, Fotos/Medien, Ortsbezug und Bucket-List-Ideen.  
+
+**Weitere Stakeholder:**  
+Dozierende/Projektbetreuung (Bewertung von Konzept, Umsetzung, Doku), Testnutzende (Feedback zu Verständlichkeit/UX/Mehrwert), Technik/Hosting (neutral, prototypische Persistenz und Schnittstellen).  
+
+**Annahmen (zu validieren):**  
+- Dokumentation bevorzugt nach der Reise, um reflektiert und zusammenhängend festzuhalten.  
+- Freie Texte + optionale Medien/Orte/Tags werden klaren Pflichtformularen vorgezogen.  
+- Ruhiges, klar strukturiertes UI unterstützt Erinnerungsarbeit besser als überladene Oberflächen.  
+- Kombination aus vergangenen Reisen und zukünftigen Zielen (Bucket List) steigert den langfristigen Nutzen.  
+- Niedrige Einstiegshürde (einfache Auth) erhöht Akzeptanz in Tests.
 
 ## 3. Anforderungen & Umfang
 Beschreibt den verbindlichen Umfang gemäss Übungen und allfällige Erweiterungen.

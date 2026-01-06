@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { PUBLIC_SITE_URL } from "$env/static/public";
 	import { supabase } from "$lib/supabaseClient";
 	import { onMount } from "svelte";
 
@@ -6,11 +7,12 @@
 	let lastName = "";
 	let birthday = ""; // Format: yyyy-mm-dd aus <input type="date">
 	let email = "";
-	let password = "";
+let password = "";
 
-	let loading = false;
-	let message = "";
-	let errorMessage = "";
+let loading = false;
+let message = "";
+let errorMessage = "";
+const redirectBase = (PUBLIC_SITE_URL || "http://localhost:5173").replace(/\/$/, "");
 
 	onMount(async () => {
 		// Falls schon eingeloggt → direkt weiter
@@ -47,7 +49,7 @@
 					birthday
 				},
 				// Wohin der Bestätigungslink nach dem Klick weiterleitet:
-				emailRedirectTo: "http://localhost:5173/login"
+				emailRedirectTo: `${redirectBase}/login`
 				// später z.B.: "https://deine-domain.ch/login"
 			}
 		});
