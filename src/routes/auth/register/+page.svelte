@@ -67,7 +67,7 @@ const redirectBase = (PUBLIC_SITE_URL || "http://localhost:5173").replace(/\/$/,
 </script>
 
 <div class="min-h-screen flex justify-center px-4 py-10 bg-white text-black">
-	<div class="w-full max-w-2xl mt-10">
+	<div class="w-full max-w-2xl mt-10 px-3 sm:px-0">
 		<h1 class="text-4xl font-bold mb-8">Registrieren</h1>
 
 		{#if errorMessage}

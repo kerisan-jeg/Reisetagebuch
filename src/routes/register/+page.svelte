@@ -158,7 +158,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 3rem 2rem;
+    padding: clamp(2rem, 4vw, 3rem) clamp(1.25rem, 3vw, 2rem);
     box-sizing: border-box;
   }
 
@@ -179,11 +179,11 @@
     position: relative;
     z-index: 2;
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 3rem;
+    grid-template-columns: minmax(260px, 1fr) minmax(320px, 520px);
+    gap: clamp(1.5rem, 3vw, 3rem);
     align-items: start;
-    width: 100%;
-    max-width: 1200px;
+    width: min(1100px, 100%);
+    margin: 0 auto;
   }
 
   .register-text {
@@ -193,22 +193,23 @@
   }
 
   .register-text h1 {
-    font-size: clamp(2.4rem, 4vw, 3.2rem);
+    font-size: clamp(2.2rem, 3.2vw, 3rem);
     margin-bottom: 1rem;
   }
 
   .register-text p {
-    font-size: 1.1rem;
+    font-size: clamp(1rem, 1.4vw, 1.15rem);
     line-height: 1.5;
   }
 
   .register-card {
-    width: 100%;
-    padding: 2.4rem;
+    width: min(520px, 100%);
+    padding: clamp(1.6rem, 2.4vw, 2.4rem);
     border-radius: 24px;
     background: rgba(255, 255, 255, 0.92);
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(6px);
+    margin-inline: auto;
   }
 
   .form {
