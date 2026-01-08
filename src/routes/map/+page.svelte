@@ -90,6 +90,6 @@
 			bind:this={mapContainer}
 			class="flex-1 m-4 rounded-xl overflow-hidden"
 			style="min-height: 60vh; background: #111;"
-		/>
+		></div>
 	{/if}
 </div>

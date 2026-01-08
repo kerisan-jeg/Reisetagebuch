@@ -138,7 +138,11 @@
           style={`background-image:url('${heroImages[heroIndex]}')`}
           in:fade={{ duration: 700 }}
           out:fade={{ duration: 700 }}
+          role="button"
+          tabindex="0"
+          aria-label="Bild vergrößern"
           on:click={() => openLightbox(heroIndex)}
+          on:keydown={(e) => (e.key === "Enter" || e.key === " ") && openLightbox(heroIndex)}
         ></div>
       {/key}
       <div class="hero-overlay"></div>
@@ -212,8 +216,22 @@
 {/if}
 
 {#if lightboxOpen}
-  <div class="lightbox" on:click={closeLightbox}>
-    <div class="lightbox-inner" on:click|stopPropagation>
+  <div
+    class="lightbox"
+    role="button"
+    tabindex="0"
+    aria-label="Lightbox schließen"
+    on:click={closeLightbox}
+    on:keydown={(e) => (e.key === "Enter" || e.key === " ") && closeLightbox()}
+  >
+    <div
+      class="lightbox-inner"
+      role="dialog"
+      tabindex="-1"
+      aria-modal="true"
+      on:click|stopPropagation
+      on:keydown|stopPropagation
+    >
       <button class="close" on:click={closeLightbox} aria-label="Schliessen">×</button>
       <button class="nav prev" on:click={prevLightbox} aria-label="Vorheriges">‹</button>
       <img src={heroImages[lightboxIndex]} alt="Bild" loading="lazy" />

@@ -55,7 +55,7 @@
   .login-wrap {
     width: 100%;
     height: 100vh;
-    background-image: url("/img/dein-bild.jpg");
+    background-image: url("/landing/Berg.jpg");
     background-size: cover;
     background-position: center;
     display: flex;

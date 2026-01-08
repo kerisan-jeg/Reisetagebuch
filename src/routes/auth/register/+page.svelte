@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { PUBLIC_SITE_URL } from "$env/static/public";
 	import { supabase } from "$lib/supabaseClient";
 	import { onMount } from "svelte";
 
@@ -7,12 +6,13 @@
 	let lastName = "";
 	let birthday = ""; // Format: yyyy-mm-dd aus <input type="date">
 	let email = "";
-let password = "";
+	let password = "";
 
-let loading = false;
-let message = "";
-let errorMessage = "";
-const redirectBase = (PUBLIC_SITE_URL || "http://localhost:5173").replace(/\/$/, "");
+	let loading = false;
+	let message = "";
+	let errorMessage = "";
+	const redirectBase =
+		typeof window !== "undefined" ? window.location.origin : "https://reisetagebuch1234.netlify.app";
 
 	onMount(async () => {
 		// Falls schon eingeloggt → direkt weiter
@@ -50,7 +50,6 @@ const redirectBase = (PUBLIC_SITE_URL || "http://localhost:5173").replace(/\/$/,
 				},
 				// Wohin der Bestätigungslink nach dem Klick weiterleitet:
 				emailRedirectTo: `${redirectBase}/login`
-				// später z.B.: "https://deine-domain.ch/login"
 			}
 		});
 
@@ -123,12 +122,13 @@ const redirectBase = (PUBLIC_SITE_URL || "http://localhost:5173").replace(/\/$/,
 			</div>
 
 			<div>
-				<label class="block mb-1 font-medium">Passwort</label>
+				<label class="block mb-1 font-medium" for="reg-password">Passwort</label>
 				<input
+					id="reg-password"
 					type="password"
 					bind:value={password}
 					class="w-full border border-gray-300 rounded px-3 py-2 bg-yellow-100"
-					placeholder="••••••••"
+					placeholder="••••••"
 				/>
 			</div>
 
