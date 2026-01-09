@@ -155,7 +155,8 @@
   }
 
   .lang-select option {
-    color: #0f172a;
+    background: #ffffff;
+    color: #1f2937;
   }
 
   /* ---------- MAIN ---------- */
