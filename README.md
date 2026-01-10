@@ -239,7 +239,6 @@ flowchart LR
 ### 4.5 Validate
 - **URL der getesteten Version:** https://reisetagebuch1234.netlify.app  
 - **Deployment verifiziert:** Januar 2026 – Anwendung erreichbar und funktionsfähig.  
-- **Demo-Video:** _(Link einfügen, falls gefordert)_  
 - **Ziele der Prüfung:** Verständlichkeit von Navigation, Kontoerstellung, Reiseverwaltung; Auffindbarkeit zentraler Funktionen.  
 - **Vorgehen:** Unmoderierte Remote-Usability-Tests.  
 - **Stichprobe:** Vier bis fünf testende Personen mit Reiseerfahrung.  
@@ -321,7 +320,7 @@ Dokumentiert Erweiterungen über den Mindestumfang hinaus.
   - Umsetzung: Upload- und Verknüpfungs-Flow für Bilder zu Einträgen (Storage + URL-Mapping), Anzeige in Detailansichten.  
   - Abgrenzung: Erweiterung über das Minimum „Text/Medien verlinken“, da echter Upload/Storage statt statischer URLs.    - **Quality Proof:** Upload bis 5MB getestet, Fortschrittsanzeige, Fehlerhandling bei falschen Formaten.  
 ## 6. Projektorganisation [Optional]
-- **Repository:** Zentrales Git-Repository mit main-Branch und Feature-Branches nach Bedarf. Link: _(einfügen: GitHub-URL)_.  
+- **Repository:** Zentrales Git-Repository mit main-Branch und Feature-Branches nach Bedarf. Link: https://github.com/kerisan-jeg/Reisetagebuch  
 
 **Branching-Strategie:**  
 | Branch | Zweck |
