@@ -271,15 +271,15 @@ flowchart LR
 | Change | Status |
 | ------ | ------ |
 | Lösch-Button prominenter platziert + Confirm-Dialog | ✓ Done |
-| Auth-Flow mit Resend-Option | Todo |
+| Auth-Flow mit Resend-Option | ✓ Done |
 | Hero-Bereich mit klarerem Branding | Todo |
 
 - **Abgeleitete Verbesserungen:** Verifikationsprozess robuster gestalten; Lösch-Funktion klarer platzieren.  
 - **Umgesetzte Anpassungen:** Lösch-Funktion wurde nach Evaluation ergänzt.  
 - **Offene Issues (Auszug):**  
-  | ID   | Problem                                      | Prio   | Betroffene View       | Fix-Idee                                        | Status |  
-  | ---- | -------------------------------------------- | ------ | --------------------- | ----------------------------------------------- | ------ |  
-  | I-01 | Verifikationslink fehlerhaft                 | Hoch   | Auth/Register         | Auth-Link prüfen/Resend fixen                   | Todo   |  
+  | ID   | Problem                                      | Prio   | Betroffene View       | Fix-Idee                                        | Status |
+  | ---- | -------------------------------------------- | ------ | --------------------- | ----------------------------------------------- | ------ |
+  | I-01 | Verifikationslink fehlerhaft                 | Hoch   | Auth/Register         | Auth-Link prüfen/Resend fixen                   | Done   |
   | I-02 | Lösch-Funktion schwer auffindbar             | Mittel | Reisen-Detail         | Button/Label prominenter platzieren             | Done   |  
   | I-03 | Homepage nicht klar als Reisetagebuch erkennbar | Mittel | Landing/Home          | Hero-Text/Titel anpassen, Branding verstärken   | Todo   |  
   | I-04 | Reise-Detailansicht ohne Slideshow           | Low    | Reisen-Detail         | Slideshow-Komponente für Medien integrieren     | Todo   |  
@@ -339,7 +339,7 @@ Dokumentiert Erweiterungen über den Mindestumfang hinaus.
 **Bekannte Issues (informell getrackt):**  
 | Issue | Beschreibung | Status |
 | ----- | ------------ | ------ |
-| I-01 | Verifikationslink fehlerhaft | Todo |
+| I-01 | Verifikationslink fehlerhaft | Done |
 | I-02 | Lösch-Button schwer auffindbar | Done |
 | I-05 | Mobile Ansicht verbessern | Todo |
 
