@@ -336,6 +336,8 @@ Dokumentiert Erweiterungen über den Mindestumfang hinaus.
 - `style:` Formatierung, kein Code-Change  
 - `refactor:` Code-Umstrukturierung ohne Feature-Änderung  
 
+*Hinweis: Die Commit-Konvention beschreibt das Zielbild; im Projektverlauf wurden teils auch freie Commit-Titel verwendet.*
+
 **Bekannte Issues (informell getrackt):**  
 | Issue | Beschreibung | Status |
 | ----- | ------------ | ------ |
@@ -344,7 +346,7 @@ Dokumentiert Erweiterungen über den Mindestumfang hinaus.
 | I-05 | Mobile Ansicht verbessern | Todo |
 
 - **Ordnerstruktur:** Framework-Standard (SvelteKit); klare Trennung von Seiten/Routen, Komponenten, statischen Assets und Konfiguration.  
-- **Issues / Planung:** Ideen/Aufgaben informell und iterativ; Priorisierung entlang des Prototyping-Prozesses, laufend angepasst.  
+- **Issues / Planung:** Issues wurden bewusst zentral in der README-Dokumentation geführt (siehe Abschnitt 4.5), um alle projektrelevanten Informationen an einem Ort zu bündeln. Ideen/Aufgaben wurden informell und iterativ priorisiert, entlang des Prototyping-Prozesses laufend angepasst.  
 - **Testing:** Primär manuelle Smoke-Tests der Kernfunktionen; keine automatisierten Tests (bewusst aus dem Scope gelassen).  
 
 ## 7. KI-Deklaration
